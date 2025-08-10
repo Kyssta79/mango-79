@@ -8,6 +8,7 @@ import java.util.List;
 
 public class Arena {
     private String name;
+    private String worldName;
     private Location center;
     private Location spawn1;
     private Location spawn2;
@@ -18,6 +19,14 @@ public class Arena {
 
     public Arena(String name) {
         this.name = name;
+        this.worldName = "world"; // Default world
+        this.regenerateBlocks = true;
+        this.allowedKits = new ArrayList<>();
+    }
+
+    public Arena(String name, String worldName) {
+        this.name = name;
+        this.worldName = worldName;
         this.regenerateBlocks = true;
         this.allowedKits = new ArrayList<>();
     }
@@ -29,6 +38,14 @@ public class Arena {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getWorldName() {
+        return worldName;
+    }
+
+    public void setWorldName(String worldName) {
+        this.worldName = worldName;
     }
 
     public Location getCenter() {
@@ -106,6 +123,8 @@ public class Arena {
     }
 
     public void saveToConfig(ConfigurationSection section) {
+        section.set("world", worldName);
+        
         if (center != null) {
             ConfigurationSection centerSection = section.createSection("center");
             saveLocationToConfig(centerSection, center);
@@ -131,7 +150,6 @@ public class Arena {
     }
 
     private void saveLocationToConfig(ConfigurationSection section, Location location) {
-        section.set("world", location.getWorld().getName());
         section.set("x", location.getX());
         section.set("y", location.getY());
         section.set("z", location.getZ());

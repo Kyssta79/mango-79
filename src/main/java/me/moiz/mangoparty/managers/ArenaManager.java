@@ -4,12 +4,14 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
 import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.session.ClipboardHolder;
@@ -71,7 +73,7 @@ public class ArenaManager {
 
     private Arena loadArenaFromConfig(String name, ConfigurationSection section) {
         try {
-            String worldName = section.getString("world");
+            String worldName = section.getString("world", "world");
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
                 plugin.getLogger().warning("World '" + worldName + "' not found for arena '" + name + "'");
@@ -283,9 +285,12 @@ public class ArenaManager {
 
             CuboidRegion region = new CuboidRegion(BukkitAdapter.adapt(corner1.getWorld()), min, max);
             
-            // Create clipboard
+            // Create clipboard using BlockArrayClipboard
+            BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+            
             try (EditSession editSession = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(corner1.getWorld()))) {
-                Clipboard clipboard = editSession.lazyCopy(region);
+                ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, clipboard, region.getMinimumPoint());
+                Operations.complete(copy);
                 
                 // Save to file
                 File schematicFile = new File(schematicsDir, arena.getName() + ".schem");
