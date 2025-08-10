@@ -1,13 +1,11 @@
-title: "&6&l2v2 Kits"
+title: "&62v2 Duels"
 size: 54
+
 items:
-  glass_pane:
-    material: GRAY_STAINED_GLASS_PANE
-    name: " "
-    lore: []
   back:
-    slot: 49
-    material: ARROW
+    material: "ARROW"
     name: "&cBack"
+    slot: 49
     lore: []
+
 kits: {}

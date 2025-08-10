@@ -3,71 +3,68 @@ package me.moiz.mangoparty.gui;
 import me.moiz.mangoparty.MangoParty;
 import me.moiz.mangoparty.models.Arena;
 import me.moiz.mangoparty.models.Kit;
-import me.moiz.mangoparty.utils.HexUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitTask;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ArenaEditorGui implements Listener {
     private MangoParty plugin;
-    private YamlConfiguration guiConfig;
 
     public ArenaEditorGui(MangoParty plugin) {
         this.plugin = plugin;
-        loadGuiConfig();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private void loadGuiConfig() {
-        File guiFile = new File(plugin.getDataFolder(), "gui/arena_editor.yml");
-        if (!guiFile.exists()) {
-            plugin.saveResource("gui/arena_editor.yml", false);
-        }
-        guiConfig = YamlConfiguration.loadConfiguration(guiFile);
-    }
-
     public void openArenaListGui(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 54, HexUtils.colorize(guiConfig.getString("arena_list.title", "&6Arena Manager")));
+        Inventory gui = Bukkit.createInventory(null, 54, "§6Arena Manager");
         
         // Add create new arena button
-        ItemStack createButton = createItem(Material.valueOf(guiConfig.getString("arena_list.items.create.material", "EMERALD")), 
-            HexUtils.colorize(guiConfig.getString("arena_list.items.create.name", "&a§lCreate New Arena")), 
-            List.of(HexUtils.colorize("&7Click to create a new arena")));
-        gui.setItem(guiConfig.getInt("arena_list.items.create.slot", 0), createButton);
+        ItemStack createButton = new ItemStack(Material.EMERALD);
+        ItemMeta createMeta = createButton.getItemMeta();
+        createMeta.setDisplayName("§a§lCreate New Arena");
+        List<String> createLore = new ArrayList<>();
+        createLore.add("§7Click to create a new arena");
+        createMeta.setLore(createLore);
+        createButton.setItemMeta(createMeta);
+        gui.setItem(0, createButton);
         
         // Add existing arenas
-        int slot = guiConfig.getInt("arena_list.items.start_slot", 9); // Start from second row
+        int slot = 9; // Start from second row
         for (Arena arena : plugin.getArenaManager().getAllArenas()) {
             if (slot >= 54) break;
             
-            ItemStack arenaItem = createItem(
-                arena.isComplete() ? Material.valueOf(guiConfig.getString("arena_list.items.arena.complete_material", "GREEN_CONCRETE")) : Material.valueOf(guiConfig.getString("arena_list.items.arena.incomplete_material", "RED_CONCRETE")), 
-                HexUtils.colorize("&e" + arena.getName()), 
-                List.of(
-                    HexUtils.colorize("&7Status: " + (arena.isComplete() ? "&aComplete" : "&cIncomplete")), 
-                    HexUtils.colorize("&7Center: " + formatLocation(arena.getCenter())), 
-                    HexUtils.colorize("&7Spawn 1: " + formatLocation(arena.getSpawn1())), 
-                    HexUtils.colorize("&7Spawn 2: " + formatLocation(arena.getSpawn2())), 
-                    HexUtils.colorize("&7Corner 1: " + formatLocation(arena.getCorner1())), 
-                    HexUtils.colorize("&7Corner 2: " + formatLocation(arena.getCorner2())), 
-                    HexUtils.colorize("&7Allowed Kits: &f" + arena.getAllowedKits().size()), 
-                    "", 
-                    HexUtils.colorize("&aLeft-click to edit"), 
-                    HexUtils.colorize("&cRight-click to delete")
-                )
-            );
+            ItemStack arenaItem = new ItemStack(arena.isComplete() ? Material.GREEN_CONCRETE : Material.RED_CONCRETE);
+            ItemMeta meta = arenaItem.getItemMeta();
+            meta.setDisplayName("§e" + arena.getName());
+            
+            List<String> lore = new ArrayList<>();
+            lore.add("§7Status: " + (arena.isComplete() ? "§aComplete" : "§cIncomplete"));
+            lore.add("§7Center: " + formatLocation(arena.getCenter()));
+            lore.add("§7Spawn 1: " + formatLocation(arena.getSpawn1()));
+            lore.add("§7Spawn 2: " + formatLocation(arena.getSpawn2()));
+            lore.add("§7Corner 1: " + formatLocation(arena.getCorner1()));
+            lore.add("§7Corner 2: " + formatLocation(arena.getCorner2()));
+            lore.add("§7Allowed Kits: §f" + arena.getAllowedKits().size());
+            lore.add("§7Regeneration: " + (arena.isRegenerateBlocks() ? "§aEnabled" : "§cDisabled"));
+            lore.add("");
+            lore.add("§aLeft-click to edit");
+            lore.add("§cRight-click to delete");
+            
+            meta.setLore(lore);
+            arenaItem.setItemMeta(meta);
             gui.setItem(slot, arenaItem);
             slot++;
         }
@@ -76,273 +73,499 @@ public class ArenaEditorGui implements Listener {
     }
     
     private String formatLocation(Location loc) {
-        if (loc == null) return HexUtils.colorize("&cNot set");
-        return String.format(HexUtils.colorize("&f%.1f, %.1f, %.1f"), loc.getX(), loc.getY(), loc.getZ());
+        if (loc == null) return "§cNot set";
+        return String.format("§f%.1f, %.1f, %.1f", loc.getX(), loc.getY(), loc.getZ());
     }
 
     public void openArenaEditorGui(Player player, String arenaName) {
         Arena arena = plugin.getArenaManager().getArena(arenaName);
         if (arena == null) {
-            player.sendMessage(HexUtils.colorize("&cArena not found!"));
+            player.sendMessage("§cArena not found!");
             return;
         }
         
-        openArenaEditor(player, arena);
-    }
-
-    public void openArenaEditor(Player player, Arena arena) {
-        String title = HexUtils.colorize(guiConfig.getString("title", "&6Arena Editor"));
-        int size = guiConfig.getInt("size", 54);
-        
-        Inventory inventory = Bukkit.createInventory(null, size, title);
-        
-        // Fill with glass panes
-        ItemStack glassPane = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", new ArrayList<>());
-        for (int i = 0; i < size; i++) {
-            inventory.setItem(i, glassPane);
-        }
-        
-        // Set center location
-        ItemStack centerItem = createLocationItem("center", arena.getCenter() != null);
-        inventory.setItem(guiConfig.getInt("items.center.slot", 10), centerItem);
-        
-        // Set spawn locations
-        ItemStack spawn1Item = createLocationItem("spawn1", arena.getSpawn1() != null);
-        inventory.setItem(guiConfig.getInt("items.spawn1.slot", 12), spawn1Item);
-        
-        ItemStack spawn2Item = createLocationItem("spawn2", arena.getSpawn2() != null);
-        inventory.setItem(guiConfig.getInt("items.spawn2.slot", 14), spawn2Item);
-        
-        // Set corner locations
-        ItemStack corner1Item = createLocationItem("corner1", arena.getCorner1() != null);
-        inventory.setItem(guiConfig.getInt("items.corner1.slot", 28), corner1Item);
-        
-        ItemStack corner2Item = createLocationItem("corner2", arena.getCorner2() != null);
-        inventory.setItem(guiConfig.getInt("items.corner2.slot", 34), corner2Item);
-        
-        // Allowed kits button
-        ItemStack allowedKitsItem = createAllowedKitsItem(arena);
-        inventory.setItem(guiConfig.getInt("items.allowed_kits.slot", 16), allowedKitsItem);
-        
-        // Save schematic button
-        ItemStack saveSchematicItem = createSaveSchematicItem(arena);
-        inventory.setItem(guiConfig.getInt("items.save_schematic.slot", 40), saveSchematicItem);
-        
-        // Back button
-        ItemStack backItem = createBackItem();
-        inventory.setItem(guiConfig.getInt("items.back.slot", 49), backItem);
-        
-        player.openInventory(inventory);
-    }
-
-    private ItemStack createLocationItem(String locationType, boolean isSet) {
-        ConfigurationSection itemConfig = guiConfig.getConfigurationSection("items." + locationType);
-        if (itemConfig == null) return new ItemStack(Material.STONE);
-        
-        Material material = Material.valueOf(itemConfig.getString("material", "STONE"));
-        String name = HexUtils.colorize(itemConfig.getString("name", "&f" + locationType));
-        
-        List<String> lore = new ArrayList<>();
-        if (isSet) {
-            lore.add(HexUtils.colorize("&aSet"));
-            lore.add(HexUtils.colorize("&7Click to update"));
-        } else {
-            lore.add(HexUtils.colorize("&cNot set"));
-            lore.add(HexUtils.colorize("&7Click to set"));
-        }
-        
-        return createItem(material, name, lore);
-    }
-
-    private ItemStack createAllowedKitsItem(Arena arena) {
-        ConfigurationSection itemConfig = guiConfig.getConfigurationSection("items.allowed_kits");
-        if (itemConfig == null) return new ItemStack(Material.CHEST);
-        
-        Material material = Material.valueOf(itemConfig.getString("material", "CHEST"));
-        String name = HexUtils.colorize(itemConfig.getString("name", "&6Allowed Kits"));
-        
-        List<String> lore = new ArrayList<>();
-        lore.add(HexUtils.colorize("&7Manage which kits are allowed"));
-        lore.add(HexUtils.colorize("&7in this arena"));
-        lore.add("");
-        
-        if (arena.getAllowedKits().isEmpty()) {
-            lore.add(HexUtils.colorize("&cAll kits disabled"));
-        } else {
-            lore.add(HexUtils.colorize("&aEnabled kits: &f" + arena.getAllowedKits().size()));
-        }
-        
-        lore.add(HexUtils.colorize("&7Click to manage"));
-        
-        return createItem(material, name, lore);
-    }
-
-    private ItemStack createSaveSchematicItem(Arena arena) {
-        ConfigurationSection itemConfig = guiConfig.getConfigurationSection("items.save_schematic");
-        if (itemConfig == null) return new ItemStack(Material.PAPER);
-        
-        Material material = Material.valueOf(itemConfig.getString("material", "PAPER"));
-        String name = HexUtils.colorize(itemConfig.getString("name", "&eSave Schematic"));
-        
-        List<String> lore = new ArrayList<>();
-        if (arena.isComplete()) {
-            lore.add(HexUtils.colorize("&7Save the arena as a schematic"));
-            lore.add(HexUtils.colorize("&7for cloning and regeneration"));
-            lore.add("");
-            lore.add(HexUtils.colorize("&aClick to save"));
-        } else {
-            lore.add(HexUtils.colorize("&cArena is incomplete"));
-            lore.add(HexUtils.colorize("&7Set all locations first"));
-        }
-        
-        return createItem(material, name, lore);
-    }
-
-    private ItemStack createBackItem() {
-        ConfigurationSection itemConfig = guiConfig.getConfigurationSection("items.back");
-        if (itemConfig == null) return new ItemStack(Material.ARROW);
-        
-        Material material = Material.valueOf(itemConfig.getString("material", "ARROW"));
-        String name = HexUtils.colorize(itemConfig.getString("name", "&cBack"));
-        List<String> lore = new ArrayList<>();
-        lore.add(HexUtils.colorize("&7Return to arena list"));
-        
-        return createItem(material, name, lore);
-    }
-
-    private ItemStack createItem(Material material, String name, List<String> lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        ArenaEditorInstance instance = new ArenaEditorInstance(plugin, player, arena);
+        instance.open();
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
+        
         Player player = (Player) event.getWhoClicked();
+        String title = event.getView().getTitle();
         
-        String title = HexUtils.colorize(guiConfig.getString("title", "&6Arena Editor"));
-        if (!event.getView().getTitle().equals(title)) return;
+        if (title.equals("§6Arena Manager")) {
+            event.setCancelled(true);
+            handleArenaListClick(player, event);
+        }
+    }
+    
+    private void handleArenaListClick(Player player, InventoryClickEvent event) {
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType() == Material.AIR) return;
         
-        event.setCancelled(true);
-        
-        int slot = event.getSlot();
-        String arenaName = getArenaNameFromTitle(event.getView().getTitle());
-        Arena arena = plugin.getArenaManager().getArena(arenaName);
-        
-        if (arena == null) {
-            player.sendMessage(HexUtils.colorize("&cArena not found!"));
+        if (clicked.getType() == Material.EMERALD) {
+            // Create new arena
             player.closeInventory();
+            player.sendMessage("§aType the name of the new arena in chat:");
+            // TODO: Implement chat input system for arena name
             return;
         }
         
-        // Handle location setting
-        if (slot == guiConfig.getInt("items.center.slot", 10)) {
-            arena.setCenter(player.getLocation());
-            plugin.getArenaManager().saveArena(arena);
-            player.sendMessage(HexUtils.colorize("&aCenter location set!"));
-            openArenaEditor(player, arena);
-        } else if (slot == guiConfig.getInt("items.spawn1.slot", 12)) {
-            arena.setSpawn1(player.getLocation());
-            plugin.getArenaManager().saveArena(arena);
-            player.sendMessage(HexUtils.colorize("&aSpawn 1 location set!"));
-            openArenaEditor(player, arena);
-        } else if (slot == guiConfig.getInt("items.spawn2.slot", 14)) {
-            arena.setSpawn2(player.getLocation());
-            plugin.getArenaManager().saveArena(arena);
-            player.sendMessage(HexUtils.colorize("&aSpawn 2 location set!"));
-            openArenaEditor(player, arena);
-        } else if (slot == guiConfig.getInt("items.corner1.slot", 28)) {
-            arena.setCorner1(player.getLocation());
-            plugin.getArenaManager().saveArena(arena);
-            player.sendMessage(HexUtils.colorize("&aCorner 1 location set!"));
-            openArenaEditor(player, arena);
-        } else if (slot == guiConfig.getInt("items.corner2.slot", 34)) {
-            arena.setCorner2(player.getLocation());
-            plugin.getArenaManager().saveArena(arena);
-            player.sendMessage(HexUtils.colorize("&aCorner 2 location set!"));
-            openArenaEditor(player, arena);
-        } else if (slot == guiConfig.getInt("items.allowed_kits.slot", 16)) {
-            // Open allowed kits GUI
-            openAllowedKitsGui(player, arena);
-        } else if (slot == guiConfig.getInt("items.save_schematic.slot", 40)) {
-            if (arena.isComplete()) {
-                player.closeInventory();
-                player.sendMessage(HexUtils.colorize("&eSaving schematic..."));
-                
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                    boolean success = plugin.getArenaManager().saveSchematic(arena);
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (success) {
-                            player.sendMessage(HexUtils.colorize("&aSchematic saved successfully!"));
-                        } else {
-                            player.sendMessage(HexUtils.colorize("&cFailed to save schematic!"));
-                        }
-                    });
-                });
-            } else {
-                player.sendMessage(HexUtils.colorize("&cArena is incomplete! Set all locations first."));
+        if (clicked.getType() == Material.GREEN_CONCRETE || clicked.getType() == Material.RED_CONCRETE) {
+            String arenaName = ChatColor.stripColor(clicked.getItemMeta().getDisplayName());
+            
+            if (event.isLeftClick()) {
+                // Edit arena
+                openArenaEditorGui(player, arenaName);
+            } else if (event.isRightClick()) {
+                // Delete arena
+                plugin.getArenaManager().deleteArena(arenaName);
+                player.sendMessage("§cDeleted arena: " + arenaName);
+                openArenaListGui(player); // Refresh the GUI
             }
-        } else if (slot == guiConfig.getInt("items.back.slot", 49)) {
-            plugin.getGuiManager().openArenaListGui(player);
         }
     }
 
-    private void openAllowedKitsGui(Player player, Arena arena) {
-        String title = HexUtils.colorize("&6Allowed Kits - " + arena.getName());
-        Inventory inventory = Bukkit.createInventory(null, 54, title);
-        
-        // Fill with glass panes
-        ItemStack glassPane = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", new ArrayList<>());
-        for (int i = 0; i < 54; i++) {
-            inventory.setItem(i, glassPane);
-        }
-        
-        // Add kits
-        int slot = 10;
-        for (Kit kit : plugin.getKitManager().getAllKits()) {
-            if (slot >= 44) break; // Don't go past row 4
+    public void reloadConfigs() {
+        plugin.getLogger().info("Arena editor configs reloaded.");
+    }
+
+    // Inner class for individual arena editor instances
+    private static class ArenaEditorInstance implements Listener {
+        private MangoParty plugin;
+        private Player player;
+        private Arena arena;
+        private Inventory inventory;
+        private String currentLocationSetting;
+        private BukkitTask timeoutTask;
+        private boolean isSettingLocation = false;
+
+        public ArenaEditorInstance(MangoParty plugin, Player player, Arena arena) {
+            this.plugin = plugin;
+            this.player = player;
+            this.arena = arena;
+            this.currentLocationSetting = null;
+            this.isSettingLocation = false;
             
-            boolean isAllowed = arena.isKitAllowed(kit.getName());
-            ItemStack kitItem = createKitItem(kit, isAllowed);
-            inventory.setItem(slot, kitItem);
+            createInventory();
+            plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        }
+
+        private void createInventory() {
+            inventory = Bukkit.createInventory(null, 54, "Arena Editor: " + arena.getName());
+            updateInventory();
+        }
+
+        private void updateInventory() {
+            inventory.clear();
             
-            slot++;
-            if (slot % 9 == 8) slot += 2; // Skip to next row
-        }
-        
-        // Back button
-        ItemStack backItem = createItem(Material.ARROW, HexUtils.colorize("&cBack"), 
-            List.of(HexUtils.colorize("&7Return to arena editor")));
-        inventory.setItem(49, backItem);
-        
-        player.openInventory(inventory);
-    }
+            // Arena status
+            ItemStack statusItem = new ItemStack(arena.isComplete() ? Material.EMERALD : Material.REDSTONE);
+            ItemMeta statusMeta = statusItem.getItemMeta();
+            statusMeta.setDisplayName(ChatColor.GOLD + "Arena Status");
+            List<String> statusLore = new ArrayList<>();
+            statusLore.add(ChatColor.GRAY + "Complete: " + (arena.isComplete() ? ChatColor.GREEN + "Yes" : ChatColor.RED + "Not set"));
+            statusLore.add("");
+            statusLore.add(ChatColor.YELLOW + "Required locations:");
+            statusLore.add(ChatColor.GRAY + "• Center: " + (arena.getCenter() != null ? ChatColor.GREEN + "Set" : ChatColor.RED + "Not set"));
+            statusLore.add(ChatColor.GRAY + "• Spawn 1: " + (arena.getSpawn1() != null ? ChatColor.GREEN + "Set" : ChatColor.RED + "Not set"));
+            statusLore.add(ChatColor.GRAY + "• Spawn 2: " + (arena.getSpawn2() != null ? ChatColor.GREEN + "Set" : ChatColor.RED + "Not set"));
+            statusLore.add(ChatColor.GRAY + "• Corner 1: " + (arena.getCorner1() != null ? ChatColor.GREEN + "Set" : ChatColor.RED + "Not set"));
+            statusLore.add(ChatColor.GRAY + "• Corner 2: " + (arena.getCorner2() != null ? ChatColor.GREEN + "Set" : ChatColor.RED + "Not set"));
+            statusMeta.setLore(statusLore);
+            statusItem.setItemMeta(statusMeta);
+            inventory.setItem(4, statusItem);
 
-    private ItemStack createKitItem(Kit kit, boolean isAllowed) {
-        Material material = isAllowed ? Material.LIME_DYE : Material.GRAY_DYE;
-        String name = HexUtils.colorize("&f" + kit.getName());
-        
-        List<String> lore = new ArrayList<>();
-        if (isAllowed) {
-            lore.add(HexUtils.colorize("&aEnabled"));
-            lore.add(HexUtils.colorize("&7Click to disable"));
-        } else {
-            lore.add(HexUtils.colorize("&cDisabled"));
-            lore.add(HexUtils.colorize("&7Click to enable"));
-        }
-        
-        return createItem(material, name, lore);
-    }
+            // Location setting buttons
+            inventory.setItem(10, createLocationButton("Center", Material.BEACON, arena.getCenter()));
+            inventory.setItem(12, createLocationButton("Spawn 1", Material.RED_BED, arena.getSpawn1()));
+            inventory.setItem(14, createLocationButton("Spawn 2", Material.BLUE_BED, arena.getSpawn2()));
+            inventory.setItem(16, createLocationButton("Corner 1", Material.STONE, arena.getCorner1()));
+            inventory.setItem(19, createLocationButton("Corner 2", Material.COBBLESTONE, arena.getCorner2()));
 
-    private String getArenaNameFromTitle(String title) {
-        // Extract arena name from title if needed
-        // For now, we'll need to store this differently or pass it as metadata
-        return ""; // This needs to be implemented properly
+            // Kit management
+            ItemStack kitItem = new ItemStack(Material.CHEST);
+            ItemMeta kitMeta = kitItem.getItemMeta();
+            kitMeta.setDisplayName(ChatColor.AQUA + "Manage Allowed Kits");
+            List<String> kitLore = new ArrayList<>();
+            kitLore.add(ChatColor.GRAY + "Click to manage which kits");
+            kitLore.add(ChatColor.GRAY + "are allowed in this arena");
+            kitLore.add("");
+            kitLore.add(ChatColor.YELLOW + "Currently allowed: " + arena.getAllowedKits().size());
+            kitMeta.setLore(kitLore);
+            kitItem.setItemMeta(kitMeta);
+            inventory.setItem(22, kitItem);
+
+            // Arena regeneration toggle
+            ItemStack regenItem = new ItemStack(arena.isRegenerateBlocks() ? Material.LIME_DYE : Material.GRAY_DYE);
+            ItemMeta regenMeta = regenItem.getItemMeta();
+            regenMeta.setDisplayName(ChatColor.YELLOW + "Block Regeneration");
+            List<String> regenLore = new ArrayList<>();
+            regenLore.add(ChatColor.GRAY + "Status: " + (arena.isRegenerateBlocks() ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
+            regenLore.add("");
+            regenLore.add(ChatColor.GRAY + "When enabled, arena blocks will");
+            regenLore.add(ChatColor.GRAY + "be restored after each match");
+            regenLore.add("");
+            regenLore.add(ChatColor.AQUA + "Click to toggle");
+            regenMeta.setLore(regenLore);
+            regenItem.setItemMeta(regenMeta);
+            inventory.setItem(25, regenItem);
+
+            // Save schematic button
+            ItemStack saveItem = new ItemStack(Material.BOOK);
+            ItemMeta saveMeta = saveItem.getItemMeta();
+            saveMeta.setDisplayName(ChatColor.GREEN + "Save Schematic");
+            List<String> saveLore = new ArrayList<>();
+            if (arena.isComplete()) {
+                saveLore.add(ChatColor.GRAY + "Click to save the arena");
+                saveLore.add(ChatColor.GRAY + "blocks as a schematic");
+                saveLore.add("");
+                saveLore.add(ChatColor.GREEN + "✓ Arena is complete");
+            } else {
+                saveLore.add(ChatColor.RED + "Arena must be complete");
+                saveLore.add(ChatColor.RED + "to save schematic");
+            }
+            saveMeta.setLore(saveLore);
+            saveItem.setItemMeta(saveMeta);
+            inventory.setItem(31, saveItem);
+
+            // Clone arena button
+            ItemStack cloneItem = new ItemStack(Material.STRUCTURE_VOID);
+            ItemMeta cloneMeta = cloneItem.getItemMeta();
+            cloneMeta.setDisplayName(ChatColor.LIGHT_PURPLE + "Clone Arena");
+            List<String> cloneLore = new ArrayList<>();
+            if (arena.isComplete()) {
+                cloneLore.add(ChatColor.GRAY + "Click to clone this arena");
+                cloneLore.add(ChatColor.GRAY + "to your current location");
+                cloneLore.add("");
+                cloneLore.add(ChatColor.GREEN + "✓ Arena is complete");
+            } else {
+                cloneLore.add(ChatColor.RED + "Arena must be complete");
+                cloneLore.add(ChatColor.RED + "to clone");
+            }
+            cloneMeta.setLore(cloneLore);
+            cloneItem.setItemMeta(cloneMeta);
+            inventory.setItem(40, cloneItem);
+
+            // Back button
+            ItemStack backItem = new ItemStack(Material.ARROW);
+            ItemMeta backMeta = backItem.getItemMeta();
+            backMeta.setDisplayName(ChatColor.RED + "Back to Arena List");
+            backItem.setItemMeta(backMeta);
+            inventory.setItem(45, backItem);
+        }
+
+        private ItemStack createLocationButton(String name, Material material, Location location) {
+            ItemStack item = new ItemStack(material);
+            ItemMeta meta = item.getItemMeta();
+            meta.setDisplayName(ChatColor.YELLOW + "Set " + name);
+            
+            List<String> lore = new ArrayList<>();
+            if (location != null) {
+                lore.add(ChatColor.GREEN + "✓ Currently set:");
+                lore.add(ChatColor.GRAY + "World: " + location.getWorld().getName());
+                lore.add(ChatColor.GRAY + "X: " + String.format("%.1f", location.getX()));
+                lore.add(ChatColor.GRAY + "Y: " + String.format("%.1f", location.getY()));
+                lore.add(ChatColor.GRAY + "Z: " + String.format("%.1f", location.getZ()));
+            } else {
+                lore.add(ChatColor.RED + "✗ Not set");
+            }
+            lore.add("");
+            lore.add(ChatColor.AQUA + "Click to set location");
+            lore.add(ChatColor.GRAY + "Then Shift+Left-Click in air");
+            
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+            return item;
+        }
+
+        public void open() {
+            player.openInventory(inventory);
+        }
+
+        @EventHandler
+        public void onInventoryClick(InventoryClickEvent event) {
+            if (!event.getInventory().equals(inventory)) return;
+            if (!(event.getWhoClicked() instanceof Player)) return;
+            
+            event.setCancelled(true);
+            Player clicker = (Player) event.getWhoClicked();
+            
+            if (!clicker.equals(player)) return;
+            
+            ItemStack clicked = event.getCurrentItem();
+            if (clicked == null || clicked.getType() == Material.AIR) return;
+            
+            String displayName = clicked.getItemMeta().getDisplayName();
+            
+            if (displayName.contains("Set Center")) {
+                startLocationSetting("center");
+            } else if (displayName.contains("Set Spawn 1")) {
+                startLocationSetting("spawn1");
+            } else if (displayName.contains("Set Spawn 2")) {
+                startLocationSetting("spawn2");
+            } else if (displayName.contains("Set Corner 1")) {
+                startLocationSetting("corner1");
+            } else if (displayName.contains("Set Corner 2")) {
+                startLocationSetting("corner2");
+            } else if (displayName.contains("Manage Allowed Kits")) {
+                openKitManagementGui();
+            } else if (displayName.contains("Block Regeneration")) {
+                // Toggle regeneration
+                arena.setRegenerateBlocks(!arena.isRegenerateBlocks());
+                plugin.getArenaManager().saveArena(arena);
+                player.sendMessage(ChatColor.YELLOW + "Block regeneration " + 
+                    (arena.isRegenerateBlocks() ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled"));
+                updateInventory();
+            } else if (displayName.contains("Save Schematic")) {
+                if (arena.isComplete()) {
+                    player.sendMessage(ChatColor.YELLOW + "Saving schematic...");
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        boolean success = plugin.getArenaManager().saveSchematic(arena);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (success) {
+                                player.sendMessage(ChatColor.GREEN + "Schematic saved successfully!");
+                            } else {
+                                player.sendMessage(ChatColor.RED + "Failed to save schematic!");
+                            }
+                        });
+                    });
+                } else {
+                    player.sendMessage(ChatColor.RED + "Arena must be complete to save schematic!");
+                }
+            } else if (displayName.contains("Clone Arena")) {
+                if (arena.isComplete()) {
+                    player.sendMessage(ChatColor.YELLOW + "Cloning arena...");
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        String cloneName = plugin.getArenaManager().cloneArena(arena, player.getLocation());
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (cloneName != null) {
+                                player.sendMessage(ChatColor.GREEN + "Arena cloned successfully as: " + cloneName);
+                            } else {
+                                player.sendMessage(ChatColor.RED + "Failed to clone arena!");
+                            }
+                        });
+                    });
+                } else {
+                    player.sendMessage(ChatColor.RED + "Arena must be complete to clone!");
+                }
+            } else if (displayName.contains("Back to Arena List")) {
+                cleanup();
+                plugin.getArenaEditorGui().openArenaListGui(player);
+            }
+        }
+
+        private void startLocationSetting(String locationType) {
+            currentLocationSetting = locationType;
+            isSettingLocation = true;
+            
+            player.closeInventory();
+            player.sendMessage(ChatColor.YELLOW + "Setting " + locationType + " location...");
+            player.sendMessage(ChatColor.AQUA + "Move to the desired location and Shift+Left-Click in air");
+            player.sendMessage(ChatColor.GRAY + "You have 30 seconds to set the location");
+            
+            // Start timeout task
+            timeoutTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (isSettingLocation) {
+                    isSettingLocation = false;
+                    currentLocationSetting = null;
+                    player.sendMessage(ChatColor.RED + "Location setting timed out!");
+                    
+                    // Reopen GUI after timeout
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        updateInventory();
+                        open();
+                    }, 10L);
+                }
+            }, 600L); // 30 seconds
+        }
+
+        @EventHandler
+        public void onPlayerInteract(PlayerInteractEvent event) {
+            if (!event.getPlayer().equals(player)) return;
+            if (!isSettingLocation) return;
+            if (currentLocationSetting == null) return;
+            
+            // Check for Shift+Left-Click in air
+            if (event.getAction().name().contains("LEFT_CLICK") && 
+                event.getPlayer().isSneaking() && 
+                (event.getClickedBlock() == null || event.getClickedBlock().getType() == Material.AIR)) {
+                
+                event.setCancelled(true);
+                
+                Location location = player.getLocation();
+                
+                // Set the location based on type
+                switch (currentLocationSetting.toLowerCase()) {
+                    case "center":
+                        arena.setCenter(location);
+                        break;
+                    case "spawn1":
+                        arena.setSpawn1(location);
+                        break;
+                    case "spawn2":
+                        arena.setSpawn2(location);
+                        break;
+                    case "corner1":
+                        arena.setCorner1(location);
+                        break;
+                    case "corner2":
+                        arena.setCorner2(location);
+                        break;
+                }
+                
+                // Save arena
+                plugin.getArenaManager().saveArena(arena);
+                
+                // Cancel timeout task
+                if (timeoutTask != null) {
+                    timeoutTask.cancel();
+                    timeoutTask = null;
+                }
+                
+                // Reset state
+                isSettingLocation = false;
+                String locationType = currentLocationSetting;
+                currentLocationSetting = null;
+                
+                player.sendMessage(ChatColor.GREEN + "Location set for " + locationType + "!");
+                
+                // Reopen GUI after short delay
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    updateInventory();
+                    open();
+                }, 10L);
+            }
+        }
+
+        private void openKitManagementGui() {
+            Inventory kitGui = Bukkit.createInventory(null, 54, "Kit Management: " + arena.getName());
+            
+            Map<String, Kit> allKits = plugin.getKitManager().getKits();
+            int slot = 0;
+            
+            for (Map.Entry<String, Kit> entry : allKits.entrySet()) {
+                if (slot >= 45) break; // Leave space for control buttons
+                
+                String kitName = entry.getKey();
+                Kit kit = entry.getValue();
+                
+                ItemStack kitItem = kit.getIcon() != null ? kit.getIcon().clone() : new ItemStack(Material.IRON_SWORD);
+                ItemMeta meta = kitItem.getItemMeta();
+                
+                // Fixed logic: empty list = all disabled, non-empty list = only those enabled
+                boolean isAllowed = arena.getAllowedKits().contains(kitName);
+                
+                meta.setDisplayName(ChatColor.YELLOW + kitName);
+                List<String> lore = new ArrayList<>();
+                lore.add("");
+                lore.add(ChatColor.GRAY + "Status: " + (isAllowed ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
+                lore.add("");
+                lore.add(ChatColor.AQUA + "Click to toggle");
+                meta.setLore(lore);
+                
+                kitItem.setItemMeta(meta);
+                kitGui.setItem(slot, kitItem);
+                slot++;
+            }
+            
+            // Enable all button
+            ItemStack enableAllItem = new ItemStack(Material.LIME_DYE);
+            ItemMeta enableAllMeta = enableAllItem.getItemMeta();
+            enableAllMeta.setDisplayName(ChatColor.GREEN + "Enable All Kits");
+            enableAllItem.setItemMeta(enableAllMeta);
+            kitGui.setItem(45, enableAllItem);
+            
+            // Disable all button
+            ItemStack disableAllItem = new ItemStack(Material.RED_DYE);
+            ItemMeta disableAllMeta = disableAllItem.getItemMeta();
+            disableAllMeta.setDisplayName(ChatColor.RED + "Disable All Kits");
+            disableAllItem.setItemMeta(disableAllMeta);
+            kitGui.setItem(46, disableAllItem);
+            
+            // Back button
+            ItemStack backItem = new ItemStack(Material.ARROW);
+            ItemMeta backMeta = backItem.getItemMeta();
+            backMeta.setDisplayName(ChatColor.YELLOW + "Back to Arena Editor");
+            backItem.setItemMeta(backMeta);
+            kitGui.setItem(53, backItem);
+            
+            // Register temporary listener for kit GUI
+            Listener kitListener = new Listener() {
+                @EventHandler
+                public void onKitClick(InventoryClickEvent e) {
+                    if (!e.getInventory().equals(kitGui)) return;
+                    if (!(e.getWhoClicked() instanceof Player)) return;
+                    
+                    e.setCancelled(true);
+                    Player clicker = (Player) e.getWhoClicked();
+                    
+                    if (!clicker.equals(player)) return;
+                    
+                    ItemStack clicked = e.getCurrentItem();
+                    if (clicked == null || clicked.getType() == Material.AIR) return;
+                    
+                    String displayName = clicked.getItemMeta().getDisplayName();
+                    
+                    if (displayName.contains("Enable All Kits")) {
+                        // Enable all kits by adding all kit names to the list
+                        List<String> allKitNames = new ArrayList<>(allKits.keySet());
+                        arena.setAllowedKits(allKitNames);
+                        plugin.getArenaManager().saveArena(arena);
+                        player.sendMessage(ChatColor.GREEN + "Enabled all kits for this arena!");
+                        openKitManagementGui(); // Refresh
+                    } else if (displayName.contains("Disable All Kits")) {
+                        // Disable all kits by clearing the list
+                        arena.setAllowedKits(new ArrayList<>());
+                        plugin.getArenaManager().saveArena(arena);
+                        player.sendMessage(ChatColor.RED + "Disabled all kits for this arena!");
+                        openKitManagementGui(); // Refresh
+                    } else if (displayName.contains("Back to Arena Editor")) {
+                        HandlerList.unregisterAll(this);
+                        updateInventory();
+                        open();
+                    } else {
+                        // Toggle individual kit
+                        String kitName = ChatColor.stripColor(displayName);
+                        List<String> allowedKits = new ArrayList<>(arena.getAllowedKits());
+                        
+                        if (allowedKits.contains(kitName)) {
+                            // Kit is currently enabled, disable it
+                            allowedKits.remove(kitName);
+                            player.sendMessage(ChatColor.RED + "Disabled kit: " + kitName);
+                        } else {
+                            // Kit is currently disabled, enable it
+                            allowedKits.add(kitName);
+                            player.sendMessage(ChatColor.GREEN + "Enabled kit: " + kitName);
+                        }
+                        
+                        arena.setAllowedKits(allowedKits);
+                        plugin.getArenaManager().saveArena(arena);
+                        openKitManagementGui(); // Refresh
+                    }
+                }
+            };
+            
+            plugin.getServer().getPluginManager().registerEvents(kitListener, plugin);
+            
+            // Auto-unregister after 5 minutes
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                HandlerList.unregisterAll(kitListener);
+            }, 6000L);
+            
+            player.openInventory(kitGui);
+        }
+
+        public void cleanup() {
+            if (timeoutTask != null) {
+                timeoutTask.cancel();
+                timeoutTask = null;
+            }
+            isSettingLocation = false;
+            currentLocationSetting = null;
+            HandlerList.unregisterAll(this);
+        }
     }
 }

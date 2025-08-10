@@ -3,183 +3,175 @@ package me.moiz.mangoparty.managers;
 import me.moiz.mangoparty.MangoParty;
 import me.moiz.mangoparty.models.Kit;
 import me.moiz.mangoparty.models.KitRules;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class KitManager {
     private MangoParty plugin;
     private Map<String, Kit> kits;
-    private File kitsDir;
-    
+    private File kitsFile;
+    private YamlConfiguration kitsConfig;
+
     public KitManager(MangoParty plugin) {
         this.plugin = plugin;
         this.kits = new HashMap<>();
-        this.kitsDir = new File(plugin.getDataFolder(), "kits");
-        
-        if (!kitsDir.exists()) {
-            kitsDir.mkdirs();
-        }
+        this.kitsFile = new File(plugin.getDataFolder(), "kits.yml");
         
         loadKits();
     }
-    
+
     private void loadKits() {
-        File[] kitFiles = kitsDir.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (kitFiles != null) {
-            for (File kitFile : kitFiles) {
-                String kitName = kitFile.getName().replace(".yml", "");
-                Kit kit = loadKitFromFile(kitName, kitFile);
+        if (!kitsFile.exists()) {
+            plugin.saveResource("kits.yml", false);
+        }
+        
+        kitsConfig = YamlConfiguration.loadConfiguration(kitsFile);
+        
+        ConfigurationSection kitsSection = kitsConfig.getConfigurationSection("kits");
+        if (kitsSection != null) {
+            for (String kitName : kitsSection.getKeys(false)) {
+                Kit kit = loadKitFromConfig(kitName, kitsSection.getConfigurationSection(kitName));
                 if (kit != null) {
                     kits.put(kitName, kit);
                 }
             }
         }
+        
+        plugin.getLogger().info("Loaded " + kits.size() + " kits");
     }
-    
-    private Kit loadKitFromFile(String name, File file) {
+
+    private Kit loadKitFromConfig(String name, ConfigurationSection section) {
         try {
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
             Kit kit = new Kit(name);
             
-            kit.setDisplayName(config.getString("displayName", name));
-            
-            if (config.contains("contents")) {
-                ItemStack[] contents = new ItemStack[36];
-                for (int i = 0; i < 36; i++) {
-                    if (config.contains("contents." + i)) {
-                        contents[i] = config.getItemStack("contents." + i);
-                    }
-                }
-                kit.setContents(contents);
+            // Load icon
+            if (section.contains("icon")) {
+                ConfigurationSection iconSection = section.getConfigurationSection("icon");
+                Material material = Material.valueOf(iconSection.getString("material", "IRON_SWORD"));
+                kit.setIcon(new ItemStack(material));
             }
             
-            if (config.contains("armor")) {
-                ItemStack[] armor = new ItemStack[4];
-                for (int i = 0; i < 4; i++) {
-                    if (config.contains("armor." + i)) {
-                        armor[i] = config.getItemStack("armor." + i);
-                    }
+            // Load items
+            if (section.contains("items")) {
+                List<Map<?, ?>> itemsList = section.getMapList("items");
+                List<ItemStack> items = new ArrayList<>();
+                for (Map<?, ?> itemMap : itemsList) {
+                    ItemStack item = ItemStack.deserialize((Map<String, Object>) itemMap);
+                    items.add(item);
+                }
+                kit.setItems(items);
+            }
+            
+            // Load armor
+            if (section.contains("armor")) {
+                List<Map<?, ?>> armorList = section.getMapList("armor");
+                List<ItemStack> armor = new ArrayList<>();
+                for (Map<?, ?> armorMap : armorList) {
+                    ItemStack armorPiece = ItemStack.deserialize((Map<String, Object>) armorMap);
+                    armor.add(armorPiece);
                 }
                 kit.setArmor(armor);
             }
             
-            if (config.contains("icon")) {
-                kit.setIcon(config.getItemStack("icon"));
-            }
-            
-            // Load kit rules
-            if (config.contains("rules")) {
-                ConfigurationSection rulesSection = config.getConfigurationSection("rules");
+            // Load rules
+            if (section.contains("rules")) {
+                ConfigurationSection rulesSection = section.getConfigurationSection("rules");
                 KitRules rules = new KitRules();
                 
-                rules.setNaturalHealthRegen(rulesSection.getBoolean("natural_health_regen", true));
-                rules.setBlockBreak(rulesSection.getBoolean("block_break", false));
-                rules.setBlockPlace(rulesSection.getBoolean("block_place", false));
-                rules.setDamageMultiplier(rulesSection.getDouble("damage_multiplier", 1.0));
-                rules.setInstantTnt(rulesSection.getBoolean("instant_tnt", false));
+                rules.setNaturalHealthRegeneration(rulesSection.getBoolean("naturalHealthRegeneration", true));
+                rules.setBlockBreaking(rulesSection.getBoolean("blockBreaking", false));
+                rules.setBlockPlacing(rulesSection.getBoolean("blockPlacing", false));
+                rules.setDamageMultiplier(rulesSection.getDouble("damageMultiplier", 1.0));
+                rules.setInstantTnt(rulesSection.getBoolean("instantTnt", false));
                 
                 kit.setRules(rules);
             }
             
             return kit;
         } catch (Exception e) {
-            plugin.getLogger().warning("§c⚠️ Failed to load kit: " + name + " - " + e.getMessage());
+            plugin.getLogger().severe("Failed to load kit '" + name + "': " + e.getMessage());
             return null;
         }
     }
-    
-    public void createKit(String name, Player player) {
-        Kit kit = new Kit(name);
-        kit.setDisplayName(name);
-        kit.setContents(player.getInventory().getContents());
-        kit.setArmor(player.getInventory().getArmorContents());
-        
-        // Use first item in inventory as icon, or default to sword
-        ItemStack icon = null;
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (item != null) {
-                icon = item.clone();
-                icon.setAmount(1);
-                break;
-            }
-        }
-        if (icon == null) {
-            icon = new ItemStack(org.bukkit.Material.IRON_SWORD);
-        }
-        kit.setIcon(icon);
-        
-        kits.put(name, kit);
-        saveKit(kit);
-        plugin.getLogger().info("§a⚔️ Created new kit: §e" + name + " §7by §e" + player.getName());
-    }
-    
+
     public void saveKit(Kit kit) {
-        File kitFile = new File(kitsDir, kit.getName() + ".yml");
-        YamlConfiguration config = new YamlConfiguration();
+        String path = "kits." + kit.getName();
         
-        config.set("displayName", kit.getDisplayName());
-        
-        if (kit.getContents() != null) {
-            for (int i = 0; i < kit.getContents().length; i++) {
-                if (kit.getContents()[i] != null) {
-                    config.set("contents." + i, kit.getContents()[i]);
-                }
-            }
-        }
-        
-        if (kit.getArmor() != null) {
-            for (int i = 0; i < kit.getArmor().length; i++) {
-                if (kit.getArmor()[i] != null) {
-                    config.set("armor." + i, kit.getArmor()[i]);
-                }
-            }
-        }
-        
+        // Save icon
         if (kit.getIcon() != null) {
-            config.set("icon", kit.getIcon());
+            kitsConfig.set(path + ".icon.material", kit.getIcon().getType().name());
         }
         
-        // Save kit rules
+        // Save items
+        List<Map<String, Object>> itemsList = new ArrayList<>();
+        for (ItemStack item : kit.getItems()) {
+            itemsList.add(item.serialize());
+        }
+        kitsConfig.set(path + ".items", itemsList);
+        
+        // Save armor
+        List<Map<String, Object>> armorList = new ArrayList<>();
+        for (ItemStack armor : kit.getArmor()) {
+            armorList.add(armor.serialize());
+        }
+        kitsConfig.set(path + ".armor", armorList);
+        
+        // Save rules
         KitRules rules = kit.getRules();
-        config.set("rules.natural_health_regen", rules.isNaturalHealthRegen());
-        config.set("rules.block_break", rules.isBlockBreak());
-        config.set("rules.block_place", rules.isBlockPlace());
-        config.set("rules.damage_multiplier", rules.getDamageMultiplier());
-        config.set("rules.instant_tnt", rules.isInstantTnt());
+        kitsConfig.set(path + ".rules.naturalHealthRegeneration", rules.isNaturalHealthRegeneration());
+        kitsConfig.set(path + ".rules.blockBreaking", rules.isBlockBreaking());
+        kitsConfig.set(path + ".rules.blockPlacing", rules.isBlockPlacing());
+        kitsConfig.set(path + ".rules.damageMultiplier", rules.getDamageMultiplier());
+        kitsConfig.set(path + ".rules.instantTnt", rules.isInstantTnt());
         
         try {
-            config.save(kitFile);
+            kitsConfig.save(kitsFile);
+            kits.put(kit.getName(), kit);
         } catch (IOException e) {
-            plugin.getLogger().severe("§c❌ Failed to save kit: " + kit.getName() + " - " + e.getMessage());
+            plugin.getLogger().severe("Failed to save kit '" + kit.getName() + "': " + e.getMessage());
         }
     }
-    
+
+    public void deleteKit(String name) {
+        kits.remove(name);
+        kitsConfig.set("kits." + name, null);
+        
+        try {
+            kitsConfig.save(kitsFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to delete kit '" + name + "': " + e.getMessage());
+        }
+        
+        plugin.getLogger().info("Deleted kit: " + name);
+    }
+
     public Kit getKit(String name) {
         return kits.get(name);
     }
-    
+
     public Map<String, Kit> getKits() {
         return new HashMap<>(kits);
     }
-    
-    public void giveKit(Player player, Kit kit) {
-        player.getInventory().clear();
-        
-        if (kit.getContents() != null) {
-            player.getInventory().setContents(kit.getContents());
+
+    public List<Kit> getAllKits() {
+        return new ArrayList<>(kits.values());
+    }
+
+    public Set<String> getKitNames() {
+        return new HashSet<>(kits.keySet());
+    }
+
+    public void cleanup() {
+        try {
+            kitsConfig.save(kitsFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save kits on cleanup: " + e.getMessage());
         }
-        
-        if (kit.getArmor() != null) {
-            player.getInventory().setArmorContents(kit.getArmor());
-        }
-        
-        player.updateInventory();
     }
 }

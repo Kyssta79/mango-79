@@ -1,13 +1,11 @@
-title: "&6&lFFA Queue"
-size: 27
+title: "&6FFA"
+size: 54
+
 items:
-  glass_pane:
-    material: GRAY_STAINED_GLASS_PANE
-    name: " "
-    lore: []
   back:
-    slot: 22
-    material: ARROW
+    material: "ARROW"
     name: "&cBack"
+    slot: 49
     lore: []
+
 kits: {}

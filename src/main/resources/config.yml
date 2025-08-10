@@ -1,55 +1,44 @@
 # MangoParty Configuration
 
-# Debug mode - enables detailed logging for troubleshooting
+# Debug mode - enables detailed logging
 debug: false
 
 # Database settings
 database:
-  type: "sqlite" # sqlite or mysql
+  type: "sqlite" # sqlite, mysql
   host: "localhost"
   port: 3306
   database: "mangoparty"
   username: "root"
   password: ""
 
-# Queue settings
-queue:
-  max_wait_time: 300 # seconds
-  auto_start_delay: 5 # seconds
-
 # Match settings
 match:
-  countdown_time: 5 # seconds
-  max_duration: 1800 # seconds (30 minutes)
-  regenerate_arenas: true
-
+  countdown_time: 5
+  max_duration: 300 # 5 minutes in seconds
+  
+# Queue settings
+queue:
+  max_wait_time: 120 # 2 minutes in seconds
+  
 # Party settings
 party:
   max_size: 8
-  invite_timeout: 60 # seconds
-
+  
 # Scoreboard settings
 scoreboard:
   enabled: true
   update_interval: 20 # ticks
-
+  
 # Messages
 messages:
   prefix: "&8[&6MangoParty&8] "
   no_permission: "&cYou don't have permission to use this command!"
   player_only: "&cThis command can only be used by players!"
-  arena_not_found: "&cArena not found!"
-  kit_not_found: "&cKit not found!"
-  already_in_queue: "&cYou are already in a queue!"
-  not_in_queue: "&cYou are not in a queue!"
-  queue_joined: "&aYou have joined the {type} queue!"
-  queue_left: "&cYou have left the queue!"
-  match_starting: "&aMatch starting in {time} seconds!"
-  match_started: "&aMatch has started!"
-  match_ended: "&eMatch ended!"
-  party_created: "&aParty created!"
-  party_disbanded: "&cParty disbanded!"
-  party_invite_sent: "&aParty invite sent to {player}!"
-  party_invite_received: "&aYou have been invited to {player}'s party!"
-  party_joined: "&a{player} joined the party!"
-  party_left: "&c{player} left the party!"
+  
+# Arena regeneration settings
+arena:
+  regeneration:
+    enabled: true
+    delay: 5 # seconds after match ends
+    async: true # perform regeneration asynchronously
