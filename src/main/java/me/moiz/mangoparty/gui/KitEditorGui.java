@@ -38,9 +38,35 @@ public class KitEditorGui implements Listener {
     private void loadGuiConfig() {
         File guiFile = new File(plugin.getDataFolder(), "gui/kit_editor.yml");
         if (!guiFile.exists()) {
-            plugin.saveResource("gui/kit_editor.yml", false);
+            createDefaultKitEditorConfig(guiFile);
         }
         guiConfig = YamlConfiguration.loadConfiguration(guiFile);
+    }
+
+    private void createDefaultKitEditorConfig(File file) {
+        YamlConfiguration config = new YamlConfiguration();
+        
+        config.set("kit_list.title", "&6Kit Manager");
+        config.set("kit_list.size", 54);
+        config.set("kit_list.items.create.material", "EMERALD");
+        config.set("kit_list.items.create.name", "&a&lCreate New Kit");
+        config.set("kit_list.items.create.slot", 0);
+        config.set("kit_list.items.start_slot", 9);
+        
+        config.set("title", "&6Kit Editor: {kit}");
+        config.set("size", 54);
+        config.set("items.icon.slot", 4);
+        config.set("items.items.slot", 20);
+        config.set("items.armor.slot", 22);
+        config.set("items.rules.slot", 24);
+        config.set("items.save.slot", 40);
+        config.set("items.back.slot", 49);
+        
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to create kit_editor.yml: " + e.getMessage());
+        }
     }
 
     public void openKitListGui(Player player) {
@@ -182,9 +208,9 @@ public class KitEditorGui implements Listener {
         ItemStack item = createItem(Material.BOOK, 
             HexUtils.colorize("&6Kit Rules"), 
             Arrays.asList(
-                HexUtils.colorize("&7Health Regen: " + (rules.isNaturalHealthRegeneration() ? "&aEnabled" : "&cDisabled")),
-                HexUtils.colorize("&7Block Breaking: " + (rules.isBlockBreaking() ? "&aEnabled" : "&cDisabled")),
-                HexUtils.colorize("&7Block Placing: " + (rules.isBlockPlacing() ? "&aEnabled" : "&cDisabled")),
+                HexUtils.colorize("&7Health Regen: " + (rules.isNaturalHealthRegen() ? "&aEnabled" : "&cDisabled")),
+                HexUtils.colorize("&7Block Breaking: " + (rules.isBlockBreak() ? "&aEnabled" : "&cDisabled")),
+                HexUtils.colorize("&7Block Placing: " + (rules.isBlockPlace() ? "&aEnabled" : "&cDisabled")),
                 HexUtils.colorize("&7Damage Multiplier: &f" + rules.getDamageMultiplier()),
                 HexUtils.colorize("&7Instant TNT: " + (rules.isInstantTnt() ? "&aEnabled" : "&cDisabled")),
                 "",
@@ -325,10 +351,10 @@ public class KitEditorGui implements Listener {
         
         // Health regeneration
         ItemStack healthRegenItem = createItem(
-            rules.isNaturalHealthRegeneration() ? Material.GOLDEN_APPLE : Material.ROTTEN_FLESH,
+            rules.isNaturalHealthRegen() ? Material.GOLDEN_APPLE : Material.ROTTEN_FLESH,
             HexUtils.colorize("&6Natural Health Regeneration"),
             Arrays.asList(
-                HexUtils.colorize("&7Status: " + (rules.isNaturalHealthRegeneration() ? "&aEnabled" : "&cDisabled")),
+                HexUtils.colorize("&7Status: " + (rules.isNaturalHealthRegen() ? "&aEnabled" : "&cDisabled")),
                 "",
                 HexUtils.colorize("&7Click to toggle")
             )
@@ -337,10 +363,10 @@ public class KitEditorGui implements Listener {
         
         // Block breaking
         ItemStack blockBreakItem = createItem(
-            rules.isBlockBreaking() ? Material.DIAMOND_PICKAXE : Material.BARRIER,
+            rules.isBlockBreak() ? Material.DIAMOND_PICKAXE : Material.BARRIER,
             HexUtils.colorize("&6Block Breaking"),
             Arrays.asList(
-                HexUtils.colorize("&7Status: " + (rules.isBlockBreaking() ? "&aEnabled" : "&cDisabled")),
+                HexUtils.colorize("&7Status: " + (rules.isBlockBreak() ? "&aEnabled" : "&cDisabled")),
                 "",
                 HexUtils.colorize("&7Click to toggle")
             )
@@ -349,10 +375,10 @@ public class KitEditorGui implements Listener {
         
         // Block placing
         ItemStack blockPlaceItem = createItem(
-            rules.isBlockPlacing() ? Material.GRASS_BLOCK : Material.BARRIER,
+            rules.isBlockPlace() ? Material.GRASS_BLOCK : Material.BARRIER,
             HexUtils.colorize("&6Block Placing"),
             Arrays.asList(
-                HexUtils.colorize("&7Status: " + (rules.isBlockPlacing() ? "&aEnabled" : "&cDisabled")),
+                HexUtils.colorize("&7Status: " + (rules.isBlockPlace() ? "&aEnabled" : "&cDisabled")),
                 "",
                 HexUtils.colorize("&7Click to toggle")
             )
@@ -409,19 +435,19 @@ public class KitEditorGui implements Listener {
         KitRules rules = kit.getRules();
         
         if (displayName.contains("Natural Health Regeneration")) {
-            rules.setNaturalHealthRegeneration(!rules.isNaturalHealthRegeneration());
+            rules.setNaturalHealthRegen(!rules.isNaturalHealthRegen());
             player.sendMessage(HexUtils.colorize("&aHealth regeneration " + 
-                (rules.isNaturalHealthRegeneration() ? "enabled" : "disabled")));
+                (rules.isNaturalHealthRegen() ? "enabled" : "disabled")));
             openKitRulesEditor(player, kit);
         } else if (displayName.contains("Block Breaking")) {
-            rules.setBlockBreaking(!rules.isBlockBreaking());
+            rules.setBlockBreak(!rules.isBlockBreak());
             player.sendMessage(HexUtils.colorize("&aBlock breaking " + 
-                (rules.isBlockBreaking() ? "enabled" : "disabled")));
+                (rules.isBlockBreak() ? "enabled" : "disabled")));
             openKitRulesEditor(player, kit);
         } else if (displayName.contains("Block Placing")) {
-            rules.setBlockPlacing(!rules.isBlockPlacing());
+            rules.setBlockPlace(!rules.isBlockPlace());
             player.sendMessage(HexUtils.colorize("&aBlock placing " + 
-                (rules.isBlockPlacing() ? "enabled" : "disabled")));
+                (rules.isBlockPlace() ? "enabled" : "disabled")));
             openKitRulesEditor(player, kit);
         } else if (displayName.contains("Damage Multiplier")) {
             player.closeInventory();
@@ -470,8 +496,7 @@ public class KitEditorGui implements Listener {
                         return;
                     }
                     
-                    Kit newKit = new Kit(input);
-                    plugin.getKitManager().saveKit(newKit);
+                    plugin.getKitManager().createKit(input, player);
                     player.sendMessage(HexUtils.colorize("&aCreated new kit: " + input));
                     openKitEditorGui(player, input);
                     break;

@@ -1,6 +1,3 @@
-title: "&6Kit Editor: {kit}"
-size: 54
-
 kit_list:
   title: "&6Kit Manager"
   size: 54
@@ -11,35 +8,18 @@ kit_list:
       slot: 0
     start_slot: 9
 
+title: "&6Kit Editor: {kit}"
+size: 54
 items:
   icon:
-    material: "IRON_SWORD"
-    name: "&6Kit Icon"
     slot: 4
-    
   items:
-    material: "CHEST"
-    name: "&6Kit Items"
     slot: 20
-    
   armor:
-    material: "DIAMOND_CHESTPLATE"
-    name: "&6Kit Armor"
     slot: 22
-    
   rules:
-    material: "BOOK"
-    name: "&6Kit Rules"
     slot: 24
-    
   save:
-    material: "EMERALD"
-    name: "&aSave Kit"
     slot: 40
-    
   back:
-    material: "ARROW"
-    name: "&cBack"
     slot: 49
-
-kits: {}
