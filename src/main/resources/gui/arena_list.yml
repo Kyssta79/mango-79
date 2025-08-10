@@ -1,0 +1,23 @@
+title: "§6Arena Manager"
+size: 54
+
+# Default settings for arenas not specifically configured
+default:
+  material: "GRASS_BLOCK"
+  name: "§e{arena_name}"
+  lore:
+    - "§7Click to edit this arena"
+    - "§7Status: {status}"
+  customModelData: 0
+
+# Specific arena configurations (optional)
+arenas:
+  # Example:
+  # arena1:
+  #   slot: 10
+  #   material: "DIAMOND_BLOCK"
+  #   name: "§bArena 1"
+  #   lore:
+  #     - "§7A beautiful arena"
+  #     - "§7Click to edit"
+  #   customModelData: 1001

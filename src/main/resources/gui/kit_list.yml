@@ -1,0 +1,23 @@
+title: "§6Kit Manager"
+size: 54
+
+# Default settings for kits not specifically configured
+default:
+  material: "IRON_SWORD"
+  name: "§e{kit_name}"
+  lore:
+    - "§7Click to edit kit rules"
+    - "§7Kit: {kit_display_name}"
+  customModelData: 0
+
+# Specific kit configurations (optional)
+kits:
+  # Example:
+  # warrior:
+  #   slot: 10
+  #   material: "DIAMOND_SWORD"
+  #   name: "§cWarrior Kit"
+  #   lore:
+  #     - "§7A powerful melee kit"
+  #     - "§7Click to edit rules"
+  #   customModelData: 1001

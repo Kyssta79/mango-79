@@ -1,0 +1,42 @@
+# Arena configurations
+arenas:
+  example_arena:
+    world: "world"
+    corner1:
+      world: "world"
+      x: 0.0
+      y: 64.0
+      z: 0.0
+      yaw: 0.0
+      pitch: 0.0
+    corner2:
+      world: "world"
+      x: 20.0
+      y: 80.0
+      z: 20.0
+      yaw: 0.0
+      pitch: 0.0
+    center:
+      world: "world"
+      x: 10.0
+      y: 65.0
+      z: 10.0
+      yaw: 0.0
+      pitch: 0.0
+    spawn1:
+      world: "world"
+      x: 5.0
+      y: 65.0
+      z: 10.0
+      yaw: 90.0
+      pitch: 0.0
+    spawn2:
+      world: "world"
+      x: 15.0
+      y: 65.0
+      z: 10.0
+      yaw: -90.0
+      pitch: 0.0
+    allowedKits:
+      - "warrior"
+      - "archer"

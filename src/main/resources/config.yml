@@ -1,0 +1,75 @@
+# MangoParty Configuration
+
+# Party Settings
+party:
+  # Maximum party size
+  max-size: 8
+  # Invite timeout in seconds
+  invite-timeout: 60
+  # Auto-disband empty parties
+  auto-disband: true
+
+# Match Settings
+match:
+  # Countdown duration in seconds
+  countdown-duration: 5
+  # Minimum players required to start a match
+  min-players: 2
+  # Maximum match duration in minutes (0 = unlimited)
+  max-duration: 30
+
+# Arena Settings
+arena:
+  # Auto-regenerate arenas after matches
+  auto-regenerate: true
+  # Delay before regeneration in seconds
+  regeneration-delay: 5
+
+# Scoreboard Settings
+scoreboard:
+  title: "&#FFD700&lMangoParty"
+  lines:
+    - ""
+    - "&#FF6B6BArena: &#FFFFFF{arena}"
+    - "&#4ECDC4Kit: &#FFFFFF{kit}"
+    - "&#45B7D1Mode: &#FFFFFF{match_type}"
+    - ""
+    - "&#FFE66DStatus: {status}"
+    - "&#4ECDC4Players: &#FFFFFF{players_alive}/{players_total}"
+    - ""
+    - "&#FFEAA7Stats:"
+    - "  &#FF7675Kills: &#FFFFFF{kills}"
+    - "  &#74B9FFDeaths: &#FFFFFF{deaths}"
+    - ""
+    - "&#A29BFETime: &#FFFFFF{time}"
+    - ""
+    - "&#FFD93Dmangoparty.com"
+
+# Messages
+messages:
+  prefix: "§6[MangoParty] §r"
+  party-created: "§aParty created successfully!"
+  party-disbanded: "§cParty has been disbanded!"
+  invite-sent: "§aInvite sent to {player}!"
+  invite-received: "§a{player} §7invited you to their party!"
+  player-joined: "§a{player} §7joined the party!"
+  player-left: "§c{player} §7left the party!"
+  leadership-transferred: "§a{player} §7is now the party leader!"
+  match-starting: "§aMatch starting in {seconds} seconds!"
+  match-started: "§aMatch started! Good luck!"
+  match-ended: "§cMatch ended!"
+  
+  # Party vs Party Duel Messages
+  party-duel:
+    challenge-received: "§6⚔ §e{challenger_party} §7has challenged your party to a duel! §6⚔"
+    kit-info: "§7Kit: §f{kit} §8| §7Expires in: §c60 seconds"
+    challenge-sent: "§aDuel request sent to §e{target_party} §awith kit: §f{kit}"
+    challenge-accepted: "§aDuel accepted! Starting match with kit: §f{kit}"
+    challenge-declined: "§c{target_party} §7has declined your duel request."
+    challenge-expired: "§cYour duel request to §e{target_party} §chas expired."
+    challenge-expired-target: "§cThe duel request from §e{challenger_party} §chas expired."
+    no-pending-duel: "§cYou don't have any pending duel requests!"
+    duel-not-found: "§cDuel request not found or challenger is offline!"
+    already-in-match: "§cOne of the parties is already in a match!"
+    no-available-arenas: "§cNo available arenas for the duel!"
+    kit-not-found: "§cKit not found!"

@@ -1,0 +1,158 @@
+title: "&6Arena Editor - {arena}"
+size: 54
+
+items:
+  center:
+    slot: 10
+    material: BEACON
+    name: "&e&lSet Center"
+    lore:
+      - "&7Current Status: {center_info}"
+      - ""
+      - "&7The center point is used for:"
+      - "&7• Arena cloning reference"
+      - "&7• General arena positioning"
+      - ""
+      - "&eClick to set to your current location"
+
+  spawn1:
+    slot: 12
+    material: RED_BED
+    name: "&c&lSet Spawn 1"
+    lore:
+      - "&7Current Status: {spawn1_info}"
+      - ""
+      - "&7This is where Team 1 players spawn"
+      - "&7• Used in 1v1, 2v2, 3v3 matches"
+      - "&7• Includes rotation (pitch/yaw)"
+      - ""
+      - "&eClick to set to your current location"
+
+  spawn2:
+    slot: 14
+    material: BLUE_BED
+    name: "&9&lSet Spawn 2"
+    lore:
+      - "&7Current Status: {spawn2_info}"
+      - ""
+      - "&7This is where Team 2 players spawn"
+      - "&7• Used in 1v1, 2v2, 3v3 matches"
+      - "&7• Includes rotation (pitch/yaw)"
+      - ""
+      - "&eClick to set to your current location"
+
+  corner1:
+    slot: 19
+    material: GOLD_BLOCK
+    name: "&6&lSet Corner 1"
+    lore:
+      - "&7Current Status: {corner1_info}"
+      - ""
+      - "&7First corner of the arena region"
+      - "&7• Used for schematic boundaries"
+      - "&7• Defines arena build area"
+      - "&7• Works with Corner 2"
+      - ""
+      - "&eClick to set to your current location"
+
+  corner2:
+    slot: 25
+    material: GOLD_BLOCK
+    name: "&6&lSet Corner 2"
+    lore:
+      - "&7Current Status: {corner2_info}"
+      - ""
+      - "&7Second corner of the arena region"
+      - "&7• Completes arena boundaries"
+      - "&7• Used for schematic saving"
+      - "&7• Arena Dimensions: {dimensions}"
+      - ""
+      - "&eClick to set to your current location"
+
+  save_schematic:
+    slot: 28
+    material: STRUCTURE_BLOCK
+    name: "&a&lSave Schematic"
+    lore:
+      - "&7Arena Status: {status}"
+      - "&7Completion: {completion}"
+      - ""
+      - "&7Saves the arena as a schematic file"
+      - "&7• Required for arena cloning"
+      - "&7• Preserves all blocks in region"
+      - "&7• Enables match regeneration"
+      - ""
+      - "&eClick to save arena schematic"
+      - "&cRequires all points to be set"
+
+  clone_arena:
+    slot: 30
+    material: STRUCTURE_VOID
+    name: "&d&lClone Arena"
+    lore:
+      - "&7Arena Status: {status}"
+      - ""
+      - "&7Creates a copy of this arena"
+      - "&7• Pastes at your current location"
+      - "&7• Maintains perfect positioning"
+      - "&7• Copies all settings and kits"
+      - "&7• Auto-generates new name"
+      - ""
+      - "&eClick to clone arena here"
+      - "&cRequires complete arena"
+
+  manage_kits:
+    slot: 32
+    material: CHEST
+    name: "&b&lManage Allowed Kits"
+    lore:
+      - "&7Kit Status: {kit_status}"
+      - "&7Allowed Kits: {kit_count}/{total_kits}"
+      - ""
+      - "&7Control which kits can be used"
+      - "&7• Add/remove specific kits"
+      - "&7• Empty = all kits allowed"
+      - "&7• Restricts player kit selection"
+      - ""
+      - "&eClick to manage kit restrictions"
+
+  regeneration:
+    slot: 34
+    material: GRASS_BLOCK
+    name: "&2&lToggle Regeneration"
+    lore:
+      - "&7Current Status: {regeneration}"
+      - ""
+      - "&7Block regeneration settings:"
+      - "&7• &aEnabled: &7Blocks reset after matches"
+      - "&7• &cDisabled: &7Blocks remain changed"
+      - ""
+      - "&7Performance Impact:"
+      - "&7• Large arenas may cause lag"
+      - "&7• Recommended for PvP arenas"
+      - ""
+      - "&eClick to toggle regeneration"
+
+  delete_arena:
+    slot: 40
+    material: TNT
+    name: "&c&lDelete Arena"
+    lore:
+      - "&7Arena: &e{arena}"
+      - ""
+      - "&c&lWARNING: This action is permanent!"
+      - "&7• Removes arena from system"
+      - "&7• Deletes schematic file"
+      - "&7• Cannot be undone"
+      - ""
+      - "&eClick to delete this arena"
+      - "&cRequires confirmation"
+
+  back:
+    slot: 49
+    material: ARROW
+    name: "&7&l← Back to Arena List"
+    lore:
+      - "&7Return to the main arena list"
+      - ""
+      - "&eClick to go back"

@@ -1,0 +1,24 @@
+title: "§6Manage Allowed Kits"
+size: 54
+
+items:
+  back:
+    slot: 49
+    material: ARROW
+    name: "&7← Back"
+    lore:
+      - "&7Return to arena editor"
+  
+  enable_all:
+    slot: 45
+    material: LIME_DYE
+    name: "&aEnable All Kits"
+    lore:
+      - "&7Allow all kits in this arena"
+  
+  disable_all:
+    slot: 53
+    material: RED_DYE
+    name: "&cDisable All Kits"
+    lore:
+      - "&7Disable all kits in this arena"

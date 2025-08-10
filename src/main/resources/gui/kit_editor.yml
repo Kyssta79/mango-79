@@ -1,0 +1,35 @@
+title: "&6Kit Editor - {kit}"
+size: 27
+
+items:
+  edit_gui_slots:
+    slot: 10
+    material: "CHEST"
+    name: "&eEdit GUI Slots"
+    lore:
+      - "&7Click to edit kit positions in GUIs"
+      - ""
+      - "&eCurrent Positions:"
+      - "&7Split: &f{split_slot}"
+      - "&7FFA: &f{ffa_slot}"
+      - "&71v1: &f{1v1_slot}"
+      - "&72v2: &f{2v2_slot}"
+      - "&73v3: &f{3v3_slot}"
+    action: "EDIT_GUI_SLOTS"
+    
+  set_icon:
+    slot: 11
+    material: "ITEM_FRAME"
+    name: "&bSet Icon"
+    lore:
+      - "&7Click to set kit icon"
+      - "&7Hold the item you want as icon"
+    action: "SET_ICON"
+    
+  save_kit:
+    slot: 15
+    material: "EMERALD"
+    name: "&aSave Kit"
+    lore:
+      - "&7Click to save kit changes"
+    action: "SAVE_KIT"

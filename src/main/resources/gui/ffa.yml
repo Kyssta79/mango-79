@@ -1,0 +1,30 @@
+title: "§6Select Kit - Party FFA"
+size: 27
+
+kits:
+  berserker:
+    slot: 10
+    name: "§4Berserker Kit"
+    kit: "berserker"
+    lore:
+      - "§7High damage melee kit"
+      - "§7for aggressive players"
+    customModelData: 2001
+  
+  assassin:
+    slot: 12
+    name: "§8Assassin Kit"
+    kit: "assassin"
+    lore:
+      - "§7Stealth and speed kit"
+      - "§7for quick eliminations"
+    customModelData: 2002
+  
+  tank:
+    slot: 14
+    name: "§7Tank Kit"
+    kit: "tank"
+    lore:
+      - "§7Heavy armor kit"
+      - "§7for defensive play"
+    customModelData: 2003

@@ -1,0 +1,30 @@
+title: "§6Select Kit - Party Split"
+size: 27
+
+kits:
+  warrior:
+    slot: 10
+    name: "§cWarrior Kit"
+    kit: "warrior"
+    lore:
+      - "§7A balanced melee kit"
+      - "§7with sword and armor"
+    customModelData: 1001
+  
+  archer:
+    slot: 12
+    name: "§aArcher Kit"
+    kit: "archer"
+    lore:
+      - "§7Ranged combat kit"
+      - "§7with bow and arrows"
+    customModelData: 1002
+  
+  mage:
+    slot: 14
+    name: "§9Mage Kit"
+    kit: "mage"
+    lore:
+      - "§7Magical kit with"
+      - "§7potions and enchanted items"
+    customModelData: 1003
