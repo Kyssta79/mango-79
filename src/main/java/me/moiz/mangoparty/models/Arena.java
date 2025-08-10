@@ -21,14 +21,14 @@ public class Arena {
         this.name = name;
         this.worldName = "world"; // Default world
         this.regenerateBlocks = true;
-        this.allowedKits = new ArrayList<>();
+        this.allowedKits = new ArrayList<>(); // Empty list = all kits disabled by default
     }
 
     public Arena(String name, String worldName) {
         this.name = name;
         this.worldName = worldName;
         this.regenerateBlocks = true;
-        this.allowedKits = new ArrayList<>();
+        this.allowedKits = new ArrayList<>(); // Empty list = all kits disabled by default
     }
 
     // Getters and setters
@@ -115,7 +115,9 @@ public class Arena {
     }
 
     public boolean isKitAllowed(String kitName) {
-        return allowedKits.isEmpty() || allowedKits.contains(kitName);
+        // If allowedKits is empty, no kits are allowed (all disabled by default)
+        // If allowedKits has items, only those kits are allowed
+        return !allowedKits.isEmpty() && allowedKits.contains(kitName);
     }
 
     public boolean isComplete() {

@@ -1,24 +1,4 @@
-title: "§6Select Kit - Party FFA"
+title: "&6FFA Kit Selection"
 size: 27
 
-kits:
-  berserker:
-    slot: 10
-    name: "§4Berserker Kit"
-    kit: "berserker"
-    lore: []
-    customModelData: 2001
-  
-  assassin:
-    slot: 12
-    name: "§8Assassin Kit"
-    kit: "assassin"
-    lore: []
-    customModelData: 2002
-  
-  tank:
-    slot: 14
-    name: "§7Tank Kit"
-    kit: "tank"
-    lore: []
-    customModelData: 2003
+kits: {}

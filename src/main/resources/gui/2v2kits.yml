@@ -1,10 +1,4 @@
-title: "§62V2 Kit Selection"
+title: "&62V2 Kit Selection"
 size: 27
 
-kits:
-  # Example configuration - populate with actual kits using /mango addkitgui
-  # bow:
-  #   slot: 15
-  #   material: BOW
-  #   name: "&aBow Kit"
-  #   lore: []
+kits: {}

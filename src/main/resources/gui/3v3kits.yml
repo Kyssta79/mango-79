@@ -1,7 +1,7 @@
-title: "§63V3 Kit Selection"
+title: "&63V3 Kit Selection"
 size: 27
 
-kits:
+kits: {}
   # Example configuration - populate with actual kits using /mango addkitgui
   # axe:
   #   slot: 13

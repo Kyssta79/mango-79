@@ -183,6 +183,8 @@ public class ArenaManager {
         }
         
         Arena arena = new Arena(name, worldName);
+        // By default, all kits should be disabled (empty list means all disabled)
+        arena.setAllowedKits(new ArrayList<>());
         arenas.put(name, arena);
         saveArena(arena);
         
@@ -315,12 +317,14 @@ public class ArenaManager {
     public boolean pasteSchematic(String arenaName, Location location) {
         File schematicFile = new File(schematicsDir, arenaName + ".schem");
         if (!schematicFile.exists()) {
+            plugin.getLogger().warning("Schematic file not found: " + schematicFile.getPath());
             return false;
         }
 
         try {
             ClipboardFormat format = ClipboardFormats.findByFile(schematicFile);
             if (format == null) {
+                plugin.getLogger().warning("Could not find clipboard format for: " + schematicFile.getName());
                 return false;
             }
 
@@ -336,12 +340,14 @@ public class ArenaManager {
                     .build();
                 
                 Operations.complete(operation);
+                plugin.getLogger().info("Successfully pasted schematic '" + arenaName + "' at " + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ());
             }
             
             return true;
             
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to paste schematic '" + arenaName + "': " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
@@ -364,6 +370,7 @@ public class ArenaManager {
 
     public String cloneArena(Arena originalArena, Location newLocation) {
         if (!originalArena.isComplete()) {
+            plugin.getLogger().warning("Cannot clone incomplete arena: " + originalArena.getName());
             return null;
         }
 
@@ -380,6 +387,7 @@ public class ArenaManager {
         // Create new arena
         Arena clonedArena = createArena(cloneName, newLocation.getWorld().getName());
         if (clonedArena == null) {
+            plugin.getLogger().severe("Failed to create cloned arena: " + cloneName);
             return null;
         }
 
@@ -403,9 +411,22 @@ public class ArenaManager {
         // Save the cloned arena
         saveArena(clonedArena);
 
+        // First, make sure the original arena has a schematic saved
+        File originalSchematic = new File(schematicsDir, originalArena.getName() + ".schem");
+        if (!originalSchematic.exists()) {
+            plugin.getLogger().info("Original schematic not found, creating it first...");
+            if (!saveSchematic(originalArena)) {
+                plugin.getLogger().warning("Failed to save original schematic for arena: " + originalArena.getName());
+                return cloneName; // Return the cloned arena name even if schematic fails
+            }
+        }
+
         // Paste the schematic at the new location
         if (!pasteSchematic(originalArena.getName(), newLocation)) {
             plugin.getLogger().warning("Failed to paste schematic for cloned arena: " + cloneName);
+            // Don't return null here, the arena was still created successfully
+        } else {
+            plugin.getLogger().info("Successfully cloned arena '" + originalArena.getName() + "' as '" + cloneName + "'");
         }
 
         return cloneName;

@@ -1,24 +1,4 @@
-title: "§6Select Kit - Party Split"
+title: "&6Split Selection"
 size: 27
 
-kits:
-  warrior:
-    slot: 10
-    name: "§cWarrior Kit"
-    kit: "warrior"
-    lore: []
-    customModelData: 1001
-  
-  archer:
-    slot: 12
-    name: "§aArcher Kit"
-    kit: "archer"
-    lore: []
-    customModelData: 1002
-  
-  mage:
-    slot: 14
-    name: "§9Mage Kit"
-    kit: "mage"
-    lore: []
-    customModelData: 1003
+kits: {}

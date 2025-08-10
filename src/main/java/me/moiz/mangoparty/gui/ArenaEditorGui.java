@@ -421,14 +421,13 @@ public class ArenaEditorGui implements Listener {
                 ItemStack kitItem = kit.getIcon() != null ? kit.getIcon().clone() : new ItemStack(Material.IRON_SWORD);
                 ItemMeta meta = kitItem.getItemMeta();
                 
-                // Fix the logic: if allowedKits is empty, all kits are allowed
-                // if allowedKits has items, only those kits are allowed
-                boolean isAllowed = arena.getAllowedKits().isEmpty() || arena.getAllowedKits().contains(kitName);
+                // Fixed logic: empty list = all disabled, non-empty list = only those enabled
+                boolean isAllowed = arena.getAllowedKits().contains(kitName);
                 
                 meta.setDisplayName(ChatColor.YELLOW + kitName);
                 List<String> lore = new ArrayList<>();
                 lore.add("");
-                lore.add(ChatColor.GRAY + "Status: " + (isAllowed ? ChatColor.GREEN + "Allowed" : ChatColor.RED + "Disabled"));
+                lore.add(ChatColor.GRAY + "Status: " + (isAllowed ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
                 lore.add("");
                 lore.add(ChatColor.AQUA + "Click to toggle");
                 meta.setLore(lore);
@@ -477,13 +476,15 @@ public class ArenaEditorGui implements Listener {
                     String displayName = clicked.getItemMeta().getDisplayName();
                     
                     if (displayName.contains("Enable All Kits")) {
-                        arena.setAllowedKits(new ArrayList<>());
+                        // Enable all kits by adding all kit names to the list
+                        List<String> allKitNames = new ArrayList<>(allKits.keySet());
+                        arena.setAllowedKits(allKitNames);
                         plugin.getArenaManager().saveArena(arena);
                         player.sendMessage(ChatColor.GREEN + "Enabled all kits for this arena!");
                         openKitManagementGui(); // Refresh
                     } else if (displayName.contains("Disable All Kits")) {
-                        List<String> allKitNames = new ArrayList<>(allKits.keySet());
-                        arena.setAllowedKits(allKitNames);
+                        // Disable all kits by clearing the list
+                        arena.setAllowedKits(new ArrayList<>());
                         plugin.getArenaManager().saveArena(arena);
                         player.sendMessage(ChatColor.RED + "Disabled all kits for this arena!");
                         openKitManagementGui(); // Refresh
@@ -492,27 +493,18 @@ public class ArenaEditorGui implements Listener {
                         updateInventory();
                         open();
                     } else {
-                        // Toggle kit
+                        // Toggle individual kit
                         String kitName = ChatColor.stripColor(displayName);
                         List<String> allowedKits = new ArrayList<>(arena.getAllowedKits());
                         
-                        if (allowedKits.isEmpty()) {
-                            // All kits are currently allowed, so we need to create a blacklist
-                            // Add all kits except the one being disabled
-                            allowedKits.addAll(allKits.keySet());
+                        if (allowedKits.contains(kitName)) {
+                            // Kit is currently enabled, disable it
                             allowedKits.remove(kitName);
                             player.sendMessage(ChatColor.RED + "Disabled kit: " + kitName);
                         } else {
-                            // We have a specific list of allowed kits
-                            if (allowedKits.contains(kitName)) {
-                                // Kit is currently allowed, disable it
-                                allowedKits.remove(kitName);
-                                player.sendMessage(ChatColor.RED + "Disabled kit: " + kitName);
-                            } else {
-                                // Kit is currently disabled, enable it
-                                allowedKits.add(kitName);
-                                player.sendMessage(ChatColor.GREEN + "Enabled kit: " + kitName);
-                            }
+                            // Kit is currently disabled, enable it
+                            allowedKits.add(kitName);
+                            player.sendMessage(ChatColor.GREEN + "Enabled kit: " + kitName);
                         }
                         
                         arena.setAllowedKits(allowedKits);
