@@ -4,6 +4,7 @@ import me.moiz.mangoparty.MangoParty;
 import me.moiz.mangoparty.config.ConfigManager;
 import me.moiz.mangoparty.managers.KitManager;
 import me.moiz.mangoparty.models.Kit;
+import me.moiz.mangoparty.models.KitRules;
 import me.moiz.mangoparty.utils.HexUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -33,6 +34,8 @@ public class KitEditorGui implements Listener {
     private Map<UUID, String> waitingForSlotInput;
     private Map<UUID, String> slotInputType;
     private Map<UUID, Long> inputTimeout;
+    private Map<UUID, String> waitingForRuleInput;
+    private Map<UUID, String> ruleInputType;
 
     public KitEditorGui(MangoParty plugin) {
         this.plugin = plugin;
@@ -42,6 +45,8 @@ public class KitEditorGui implements Listener {
         this.waitingForSlotInput = new HashMap<>();
         this.slotInputType = new HashMap<>();
         this.inputTimeout = new HashMap<>();
+        this.waitingForRuleInput = new HashMap<>();
+        this.ruleInputType = new HashMap<>();
         
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
@@ -97,7 +102,7 @@ public class KitEditorGui implements Listener {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
         
         String title = HexUtils.colorize(config.getString("title", "&6Kit Editor").replace("{kit}", kitName));
-        int size = config.getInt("size", 27);
+        int size = config.getInt("size", 45);
         
         Inventory gui = Bukkit.createInventory(null, size, title);
 
@@ -121,7 +126,7 @@ public class KitEditorGui implements Listener {
         YamlConfiguration config = new YamlConfiguration();
         
         config.set("title", "&6Kit Editor - {kit}");
-        config.set("size", 27);
+        config.set("size", 45);
         
         // Edit GUI Slots
         config.set("items.edit_gui_slots.slot", 10);
@@ -146,8 +151,23 @@ public class KitEditorGui implements Listener {
         config.set("items.set_icon.lore", List.of("&7Click to set kit icon", "&7Hold the item you want as icon"));
         config.set("items.set_icon.action", "SET_ICON");
         
+        // Kit Rules
+        config.set("items.kit_rules.slot", 12);
+        config.set("items.kit_rules.material", "BOOK");
+        config.set("items.kit_rules.name", "&dKit Rules");
+        config.set("items.kit_rules.lore", List.of(
+            "&7Click to edit kit rules",
+            "&7",
+            "&eHealth Regen: &f{health_regen}",
+            "&eBlock Break: &f{block_break}",
+            "&eBlock Place: &f{block_place}",
+            "&eDamage Multiplier: &f{damage_multiplier}",
+            "&eInstant TNT: &f{instant_tnt}"
+        ));
+        config.set("items.kit_rules.action", "EDIT_RULES");
+        
         // Save Kit
-        config.set("items.save_kit.slot", 15);
+        config.set("items.save_kit.slot", 22);
         config.set("items.save_kit.material", "EMERALD");
         config.set("items.save_kit.name", "&aSave Kit");
         config.set("items.save_kit.lore", List.of("&7Click to save kit changes"));
@@ -199,6 +219,15 @@ public class KitEditorGui implements Listener {
         text = text.replace("{1v1_slot}", getSlotText(kit.getName(), "1v1"));
         text = text.replace("{2v2_slot}", getSlotText(kit.getName(), "2v2"));
         text = text.replace("{3v3_slot}", getSlotText(kit.getName(), "3v3"));
+        
+        // Kit rules placeholders
+        KitRules rules = kit.getRules();
+        text = text.replace("{health_regen}", rules.isNaturalHealthRegen() ? "Enabled" : "Disabled");
+        text = text.replace("{block_break}", rules.isBlockBreak() ? "Enabled" : "Disabled");
+        text = text.replace("{block_place}", rules.isBlockPlace() ? "Enabled" : "Disabled");
+        text = text.replace("{damage_multiplier}", String.valueOf(rules.getDamageMultiplier()));
+        text = text.replace("{instant_tnt}", rules.isInstantTnt() ? "Enabled" : "Disabled");
+        
         return text;
     }
 
@@ -253,6 +282,22 @@ public class KitEditorGui implements Listener {
             if (guiType != null) {
                 handleSlotEditorClick(player, kitName, guiType);
             }
+        } else if (title.contains("Kit Rules")) {
+            event.setCancelled(true);
+            
+            ItemStack clickedItem = event.getCurrentItem();
+            if (clickedItem == null || !clickedItem.hasItemMeta()) return;
+            
+            String kitName = editingKit.get(player.getUniqueId());
+            if (kitName == null) return;
+            
+            Kit kit = kitManager.getKit(kitName);
+            if (kit == null) return;
+            
+            String ruleType = identifyRuleTypeFromEditor(event.getSlot());
+            if (ruleType != null) {
+                handleRuleEditorClick(player, kit, ruleType);
+            }
         }
     }
 
@@ -304,6 +349,10 @@ public class KitEditorGui implements Listener {
                 configManager.updateKitIconInAllGuis(kit);
                 player.sendMessage(HexUtils.colorize("&aKit icon updated!"));
                 reopenGui(player, kit.getName());
+                break;
+                
+            case "EDIT_RULES":
+                openRulesEditor(player, kit);
                 break;
                 
             case "SAVE_KIT":
@@ -376,6 +425,78 @@ public class KitEditorGui implements Listener {
         player.openInventory(slotGui);
     }
 
+    private void openRulesEditor(Player player, Kit kit) {
+        player.closeInventory();
+        
+        Inventory rulesGui = Bukkit.createInventory(null, 27, HexUtils.colorize("&dKit Rules - " + kit.getName()));
+        KitRules rules = kit.getRules();
+        
+        // Health Regeneration
+        ItemStack healthRegenItem = new ItemStack(rules.isNaturalHealthRegen() ? Material.GOLDEN_APPLE : Material.ROTTEN_FLESH);
+        ItemMeta healthRegenMeta = healthRegenItem.getItemMeta();
+        healthRegenMeta.setDisplayName(HexUtils.colorize("&eNatural Health Regeneration"));
+        healthRegenMeta.setLore(List.of(
+            HexUtils.colorize("&7Status: " + (rules.isNaturalHealthRegen() ? "&aEnabled" : "&cDisabled")),
+            HexUtils.colorize("&7Click to toggle")
+        ));
+        healthRegenItem.setItemMeta(healthRegenMeta);
+        rulesGui.setItem(10, healthRegenItem);
+        
+        // Block Break
+        ItemStack blockBreakItem = new ItemStack(rules.isBlockBreak() ? Material.DIAMOND_PICKAXE : Material.WOODEN_PICKAXE);
+        ItemMeta blockBreakMeta = blockBreakItem.getItemMeta();
+        blockBreakMeta.setDisplayName(HexUtils.colorize("&eBlock Breaking"));
+        blockBreakMeta.setLore(List.of(
+            HexUtils.colorize("&7Status: " + (rules.isBlockBreak() ? "&aEnabled" : "&cDisabled")),
+            HexUtils.colorize("&7Click to toggle")
+        ));
+        blockBreakItem.setItemMeta(blockBreakMeta);
+        rulesGui.setItem(11, blockBreakItem);
+        
+        // Block Place
+        ItemStack blockPlaceItem = new ItemStack(rules.isBlockPlace() ? Material.GRASS_BLOCK : Material.BARRIER);
+        ItemMeta blockPlaceMeta = blockPlaceItem.getItemMeta();
+        blockPlaceMeta.setDisplayName(HexUtils.colorize("&eBlock Placing"));
+        blockPlaceMeta.setLore(List.of(
+            HexUtils.colorize("&7Status: " + (rules.isBlockPlace() ? "&aEnabled" : "&cDisabled")),
+            HexUtils.colorize("&7Click to toggle")
+        ));
+        blockPlaceItem.setItemMeta(blockPlaceMeta);
+        rulesGui.setItem(12, blockPlaceItem);
+        
+        // Damage Multiplier
+        ItemStack damageMultiplierItem = new ItemStack(Material.IRON_SWORD);
+        ItemMeta damageMultiplierMeta = damageMultiplierItem.getItemMeta();
+        damageMultiplierMeta.setDisplayName(HexUtils.colorize("&eDamage Multiplier"));
+        damageMultiplierMeta.setLore(List.of(
+            HexUtils.colorize("&7Current: &f" + rules.getDamageMultiplier() + "x"),
+            HexUtils.colorize("&7Click to change")
+        ));
+        damageMultiplierItem.setItemMeta(damageMultiplierMeta);
+        rulesGui.setItem(13, damageMultiplierItem);
+        
+        // Instant TNT
+        ItemStack instantTntItem = new ItemStack(rules.isInstantTnt() ? Material.TNT : Material.TNT_MINECART);
+        ItemMeta instantTntMeta = instantTntItem.getItemMeta();
+        instantTntMeta.setDisplayName(HexUtils.colorize("&eInstant TNT"));
+        instantTntMeta.setLore(List.of(
+            HexUtils.colorize("&7Status: " + (rules.isInstantTnt() ? "&aEnabled" : "&cDisabled")),
+            HexUtils.colorize("&7Click to toggle")
+        ));
+        instantTntItem.setItemMeta(instantTntMeta);
+        rulesGui.setItem(14, instantTntItem);
+        
+        // Back button
+        ItemStack backItem = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = backItem.getItemMeta();
+        backMeta.setDisplayName(HexUtils.colorize("&cBack"));
+        backMeta.setLore(List.of(HexUtils.colorize("&7Return to kit editor")));
+        backItem.setItemMeta(backMeta);
+        rulesGui.setItem(22, backItem);
+        
+        player.openInventory(rulesGui);
+    }
+
     private String identifyGuiTypeFromSlotEditor(int slot) {
         switch (slot) {
             case 10: return "split";
@@ -387,8 +508,57 @@ public class KitEditorGui implements Listener {
         }
     }
 
+    private String identifyRuleTypeFromEditor(int slot) {
+        switch (slot) {
+            case 10: return "health_regen";
+            case 11: return "block_break";
+            case 12: return "block_place";
+            case 13: return "damage_multiplier";
+            case 14: return "instant_tnt";
+            case 22: return "back";
+            default: return null;
+        }
+    }
+
     private void handleSlotEditorClick(Player player, String kitName, String guiType) {
         startSlotInput(player, kitName, guiType);
+    }
+
+    private void handleRuleEditorClick(Player player, Kit kit, String ruleType) {
+        KitRules rules = kit.getRules();
+        
+        switch (ruleType) {
+            case "health_regen":
+                rules.setNaturalHealthRegen(!rules.isNaturalHealthRegen());
+                player.sendMessage(HexUtils.colorize("&aHealth regeneration " + (rules.isNaturalHealthRegen() ? "enabled" : "disabled")));
+                break;
+                
+            case "block_break":
+                rules.setBlockBreak(!rules.isBlockBreak());
+                player.sendMessage(HexUtils.colorize("&aBlock breaking " + (rules.isBlockBreak() ? "enabled" : "disabled")));
+                break;
+                
+            case "block_place":
+                rules.setBlockPlace(!rules.isBlockPlace());
+                player.sendMessage(HexUtils.colorize("&aBlock placing " + (rules.isBlockPlace() ? "enabled" : "disabled")));
+                break;
+                
+            case "damage_multiplier":
+                startRuleInput(player, kit.getName(), "damage_multiplier");
+                return;
+                
+            case "instant_tnt":
+                rules.setInstantTnt(!rules.isInstantTnt());
+                player.sendMessage(HexUtils.colorize("&aInstant TNT " + (rules.isInstantTnt() ? "enabled" : "disabled")));
+                break;
+                
+            case "back":
+                reopenGui(player, kit.getName());
+                return;
+        }
+        
+        kitManager.saveKit(kit);
+        openRulesEditor(player, kit);
     }
 
     private void startSlotInput(Player player, String kitName, String guiType) {
@@ -411,13 +581,37 @@ public class KitEditorGui implements Listener {
         player.sendMessage("");
     }
 
+    private void startRuleInput(Player player, String kitName, String ruleType) {
+        player.closeInventory();
+        
+        waitingForRuleInput.put(player.getUniqueId(), kitName);
+        ruleInputType.put(player.getUniqueId(), ruleType);
+        inputTimeout.put(player.getUniqueId(), System.currentTimeMillis() + 30000);
+        
+        player.sendMessage("");
+        player.sendMessage(HexUtils.colorize("&8&l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"));
+        player.sendMessage(HexUtils.colorize("&d&lEDIT DAMAGE MULTIPLIER"));
+        player.sendMessage("");
+        player.sendMessage(HexUtils.colorize("&7Kit: &e" + kitName));
+        player.sendMessage("");
+        player.sendMessage(HexUtils.colorize("&eType the new damage multiplier (e.g., 1.0, 1.5, 2.0), or 'cancel' to cancel:"));
+        player.sendMessage(HexUtils.colorize("&8&l▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬"));
+        player.sendMessage("");
+    }
+
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUniqueId();
         
-        if (!waitingForSlotInput.containsKey(playerId)) return;
-        
+        if (waitingForSlotInput.containsKey(playerId)) {
+            handleSlotInputChat(event, player, playerId);
+        } else if (waitingForRuleInput.containsKey(playerId)) {
+            handleRuleInputChat(event, player, playerId);
+        }
+    }
+
+    private void handleSlotInputChat(AsyncPlayerChatEvent event, Player player, UUID playerId) {
         event.setCancelled(true);
         
         // Check timeout
@@ -477,6 +671,61 @@ public class KitEditorGui implements Listener {
             
         } catch (NumberFormatException e) {
             player.sendMessage(HexUtils.colorize("&cInvalid number! Please enter a valid slot number."));
+        }
+        
+        Bukkit.getScheduler().runTask(plugin, () -> reopenGui(player, kitName));
+    }
+
+    private void handleRuleInputChat(AsyncPlayerChatEvent event, Player player, UUID playerId) {
+        event.setCancelled(true);
+        
+        // Check timeout
+        if (System.currentTimeMillis() > inputTimeout.get(playerId)) {
+            waitingForRuleInput.remove(playerId);
+            ruleInputType.remove(playerId);
+            inputTimeout.remove(playerId);
+            player.sendMessage(HexUtils.colorize("&cInput timed out!"));
+            return;
+        }
+        
+        String message = event.getMessage().trim();
+        String kitName = waitingForRuleInput.get(playerId);
+        String ruleType = ruleInputType.get(playerId);
+        
+        // Clean up
+        waitingForRuleInput.remove(playerId);
+        ruleInputType.remove(playerId);
+        inputTimeout.remove(playerId);
+        
+        if (message.equalsIgnoreCase("cancel")) {
+            player.sendMessage(HexUtils.colorize("&cCancelled!"));
+            Bukkit.getScheduler().runTask(plugin, () -> reopenGui(player, kitName));
+            return;
+        }
+        
+        Kit kit = kitManager.getKit(kitName);
+        if (kit == null) {
+            player.sendMessage(HexUtils.colorize("&cKit not found!"));
+            return;
+        }
+        
+        if (ruleType.equals("damage_multiplier")) {
+            try {
+                double multiplier = Double.parseDouble(message);
+                
+                if (multiplier < 0.1 || multiplier > 10.0) {
+                    player.sendMessage(HexUtils.colorize("&cDamage multiplier must be between 0.1 and 10.0!"));
+                    Bukkit.getScheduler().runTask(plugin, () -> reopenGui(player, kitName));
+                    return;
+                }
+                
+                kit.getRules().setDamageMultiplier(multiplier);
+                kitManager.saveKit(kit);
+                player.sendMessage(HexUtils.colorize("&aDamage multiplier set to " + multiplier + "x!"));
+                
+            } catch (NumberFormatException e) {
+                player.sendMessage(HexUtils.colorize("&cInvalid number! Please enter a valid decimal number."));
+            }
         }
         
         Bukkit.getScheduler().runTask(plugin, () -> reopenGui(player, kitName));

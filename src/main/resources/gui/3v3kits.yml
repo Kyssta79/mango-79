@@ -1,10 +1,13 @@
-title: "&63V3 Kit Selection"
-size: 27
-
+title: "&6&l3v3 Kits"
+size: 54
+items:
+  glass_pane:
+    material: GRAY_STAINED_GLASS_PANE
+    name: " "
+    lore: []
+  back:
+    slot: 49
+    material: ARROW
+    name: "&cBack"
+    lore: []
 kits: {}
-  # Example configuration - populate with actual kits using /mango addkitgui
-  # axe:
-  #   slot: 13
-  #   material: IRON_AXE
-  #   name: "&cAxe Kit"
-  #   lore: []

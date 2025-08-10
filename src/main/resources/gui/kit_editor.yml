@@ -1,5 +1,5 @@
 title: "&6Kit Editor - {kit}"
-size: 27
+size: 45
 
 items:
   edit_gui_slots:
@@ -26,8 +26,22 @@ items:
       - "&7Hold the item you want as icon"
     action: "SET_ICON"
     
+  kit_rules:
+    slot: 12
+    material: "BOOK"
+    name: "&dKit Rules"
+    lore:
+      - "&7Click to edit kit rules"
+      - ""
+      - "&eHealth Regen: &f{health_regen}"
+      - "&eBlock Break: &f{block_break}"
+      - "&eBlock Place: &f{block_place}"
+      - "&eDamage Multiplier: &f{damage_multiplier}"
+      - "&eInstant TNT: &f{instant_tnt}"
+    action: "EDIT_RULES"
+    
   save_kit:
-    slot: 15
+    slot: 22
     material: "EMERALD"
     name: "&aSave Kit"
     lore:

@@ -36,6 +36,7 @@ public class ArenaManager {
     private File arenasFile;
     private YamlConfiguration arenasConfig;
     private File schematicsDir;
+    private boolean debugMode;
 
     public ArenaManager(MangoParty plugin) {
         this.plugin = plugin;
@@ -43,12 +44,20 @@ public class ArenaManager {
         this.reservedArenas = new HashSet<>();
         this.arenasFile = new File(plugin.getDataFolder(), "arenas.yml");
         this.schematicsDir = new File(plugin.getDataFolder(), "schematics");
+        this.debugMode = plugin.getConfig().getBoolean("debug", false);
         
         if (!schematicsDir.exists()) {
             schematicsDir.mkdirs();
+            debugLog("Created schematics directory: " + schematicsDir.getPath());
         }
         
         loadArenas();
+    }
+
+    private void debugLog(String message) {
+        if (debugMode) {
+            plugin.getLogger().info("[DEBUG] " + message);
+        }
     }
 
     private void loadArenas() {
@@ -223,10 +232,17 @@ public class ArenaManager {
                 plugin.getLogger().severe("Failed to delete arena '" + name + "': " + e.getMessage());
             }
             
-            // Delete schematic file if it exists
-            File schematicFile = new File(schematicsDir, name + ".schem");
+            // Delete both .schem and .schematic files if they exist
+            File schemFile = new File(schematicsDir, name + ".schem");
+            File schematicFile = new File(schematicsDir, name + ".schematic");
+            
+            if (schemFile.exists()) {
+                schemFile.delete();
+                debugLog("Deleted .schem file for arena: " + name);
+            }
             if (schematicFile.exists()) {
                 schematicFile.delete();
+                debugLog("Deleted .schematic file for arena: " + name);
             }
             
             plugin.getLogger().info("Deleted arena: " + name);
@@ -261,6 +277,7 @@ public class ArenaManager {
 
     public boolean saveSchematic(Arena arena) {
         if (!arena.isComplete()) {
+            debugLog("Cannot save schematic for incomplete arena: " + arena.getName());
             return false;
         }
 
@@ -269,8 +286,13 @@ public class ArenaManager {
             Location corner2 = arena.getCorner2();
             
             if (corner1 == null || corner2 == null) {
+                debugLog("Corner locations are null for arena: " + arena.getName());
                 return false;
             }
+
+            debugLog("Saving schematic for arena: " + arena.getName());
+            debugLog("Corner1: " + corner1.getBlockX() + ", " + corner1.getBlockY() + ", " + corner1.getBlockZ());
+            debugLog("Corner2: " + corner2.getBlockX() + ", " + corner2.getBlockY() + ", " + corner2.getBlockZ());
 
             // Create WorldEdit region
             BlockVector3 min = BlockVector3.at(
@@ -285,22 +307,50 @@ public class ArenaManager {
                 Math.max(corner1.getBlockZ(), corner2.getBlockZ())
             );
 
+            debugLog("Region min: " + min + ", max: " + max);
+
             CuboidRegion region = new CuboidRegion(BukkitAdapter.adapt(corner1.getWorld()), min, max);
             
             // Create clipboard using BlockArrayClipboard
             BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
             
             try (EditSession editSession = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(corner1.getWorld()))) {
+                debugLog("Creating ForwardExtentCopy operation...");
                 ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, clipboard, region.getMinimumPoint());
                 Operations.complete(copy);
+                debugLog("Copy operation completed successfully");
                 
-                // Save to file
-                File schematicFile = new File(schematicsDir, arena.getName() + ".schem");
-                ClipboardFormat format = ClipboardFormats.findByFile(schematicFile);
+                // Try both .schem and .schematic formats
+                File schemFile = new File(schematicsDir, arena.getName() + ".schem");
+                File schematicFile = new File(schematicsDir, arena.getName() + ".schematic");
                 
-                if (format != null) {
-                    try (ClipboardWriter writer = format.getWriter(new FileOutputStream(schematicFile))) {
+                debugLog("Attempting to save to: " + schemFile.getPath());
+                
+                // First try .schem format (newer format)
+                ClipboardFormat schemFormat = ClipboardFormats.findByFile(schemFile);
+                if (schemFormat != null) {
+                    debugLog("Using format: " + schemFormat.getName());
+                    try (FileOutputStream fos = new FileOutputStream(schemFile);
+                         ClipboardWriter writer = schemFormat.getWriter(fos)) {
                         writer.write(clipboard);
+                        fos.flush();
+                        debugLog("Successfully wrote .schem file, size: " + schemFile.length() + " bytes");
+                    }
+                } else {
+                    debugLog("Could not find .schem format, trying .schematic format");
+                    // Try .schematic format (legacy format)
+                    ClipboardFormat schematicFormat = ClipboardFormats.findByFile(schematicFile);
+                    if (schematicFormat != null) {
+                        debugLog("Using legacy format: " + schematicFormat.getName());
+                        try (FileOutputStream fos = new FileOutputStream(schematicFile);
+                             ClipboardWriter writer = schematicFormat.getWriter(fos)) {
+                            writer.write(clipboard);
+                            fos.flush();
+                            debugLog("Successfully wrote .schematic file, size: " + schematicFile.length() + " bytes");
+                        }
+                    } else {
+                        plugin.getLogger().severe("Could not find any suitable clipboard format!");
+                        return false;
                     }
                 }
             }
@@ -310,36 +360,56 @@ public class ArenaManager {
             
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to save schematic for arena '" + arena.getName() + "': " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
 
     public boolean pasteSchematic(String arenaName, Location location) {
-        File schematicFile = new File(schematicsDir, arenaName + ".schem");
-        if (!schematicFile.exists()) {
-            plugin.getLogger().warning("Schematic file not found: " + schematicFile.getPath());
+        // Check for both .schem and .schematic files
+        File schemFile = new File(schematicsDir, arenaName + ".schem");
+        File schematicFile = new File(schematicsDir, arenaName + ".schematic");
+        
+        File fileToUse = null;
+        if (schemFile.exists() && schemFile.length() > 0) {
+            fileToUse = schemFile;
+            debugLog("Using .schem file: " + schemFile.getPath() + " (size: " + schemFile.length() + " bytes)");
+        } else if (schematicFile.exists() && schematicFile.length() > 0) {
+            fileToUse = schematicFile;
+            debugLog("Using .schematic file: " + schematicFile.getPath() + " (size: " + schematicFile.length() + " bytes)");
+        } else {
+            plugin.getLogger().warning("No valid schematic file found for arena: " + arenaName);
+            debugLog("Checked files:");
+            debugLog("  " + schemFile.getPath() + " - exists: " + schemFile.exists() + ", size: " + (schemFile.exists() ? schemFile.length() : "N/A"));
+            debugLog("  " + schematicFile.getPath() + " - exists: " + schematicFile.exists() + ", size: " + (schematicFile.exists() ? schematicFile.length() : "N/A"));
             return false;
         }
 
         try {
-            ClipboardFormat format = ClipboardFormats.findByFile(schematicFile);
+            debugLog("Attempting to paste schematic: " + fileToUse.getName());
+            ClipboardFormat format = ClipboardFormats.findByFile(fileToUse);
             if (format == null) {
-                plugin.getLogger().warning("Could not find clipboard format for: " + schematicFile.getName());
+                plugin.getLogger().warning("Could not find clipboard format for: " + fileToUse.getName());
                 return false;
             }
 
+            debugLog("Using format: " + format.getName());
+
             Clipboard clipboard;
-            try (ClipboardReader reader = format.getReader(new FileInputStream(schematicFile))) {
+            try (ClipboardReader reader = format.getReader(new FileInputStream(fileToUse))) {
                 clipboard = reader.read();
+                debugLog("Successfully read clipboard from file");
             }
 
             try (EditSession editSession = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(location.getWorld()))) {
+                debugLog("Creating paste operation at: " + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ());
                 Operation operation = new ClipboardHolder(clipboard)
                     .createPaste(editSession)
                     .to(BlockVector3.at(location.getBlockX(), location.getBlockY(), location.getBlockZ()))
                     .build();
                 
                 Operations.complete(operation);
+                debugLog("Paste operation completed successfully");
                 plugin.getLogger().info("Successfully pasted schematic '" + arenaName + "' at " + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ());
             }
             
@@ -374,6 +444,8 @@ public class ArenaManager {
             return null;
         }
 
+        debugLog("Starting clone operation for arena: " + originalArena.getName());
+
         // Generate unique name for clone
         String baseName = originalArena.getName() + "_clone";
         String cloneName = baseName;
@@ -383,6 +455,8 @@ public class ArenaManager {
             cloneName = baseName + "_" + counter;
             counter++;
         }
+
+        debugLog("Generated clone name: " + cloneName);
 
         // Create new arena
         Arena clonedArena = createArena(cloneName, newLocation.getWorld().getName());
@@ -396,6 +470,8 @@ public class ArenaManager {
         double offsetX = newLocation.getX() - originalCenter.getX();
         double offsetY = newLocation.getY() - originalCenter.getY();
         double offsetZ = newLocation.getZ() - originalCenter.getZ();
+
+        debugLog("Calculated offset: X=" + offsetX + ", Y=" + offsetY + ", Z=" + offsetZ);
 
         // Set locations with offset
         clonedArena.setCenter(offsetLocation(originalArena.getCenter(), offsetX, offsetY, offsetZ, newLocation.getWorld().getName()));
@@ -411,10 +487,15 @@ public class ArenaManager {
         // Save the cloned arena
         saveArena(clonedArena);
 
-        // First, make sure the original arena has a schematic saved
-        File originalSchematic = new File(schematicsDir, originalArena.getName() + ".schem");
-        if (!originalSchematic.exists()) {
-            plugin.getLogger().info("Original schematic not found, creating it first...");
+        // Check if original arena has a schematic
+        File schemFile = new File(schematicsDir, originalArena.getName() + ".schem");
+        File schematicFile = new File(schematicsDir, originalArena.getName() + ".schematic");
+        
+        boolean hasValidSchematic = (schemFile.exists() && schemFile.length() > 0) || 
+                                   (schematicFile.exists() && schematicFile.length() > 0);
+
+        if (!hasValidSchematic) {
+            debugLog("No valid schematic found for original arena, creating one...");
             if (!saveSchematic(originalArena)) {
                 plugin.getLogger().warning("Failed to save original schematic for arena: " + originalArena.getName());
                 return cloneName; // Return the cloned arena name even if schematic fails

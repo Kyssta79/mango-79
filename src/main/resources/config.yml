@@ -1,75 +1,55 @@
 # MangoParty Configuration
 
-# Party Settings
-party:
-  # Maximum party size
-  max-size: 8
-  # Invite timeout in seconds
-  invite-timeout: 60
-  # Auto-disband empty parties
-  auto-disband: true
+# Debug mode - enables detailed logging for troubleshooting
+debug: false
 
-# Match Settings
+# Database settings
+database:
+  type: "sqlite" # sqlite or mysql
+  host: "localhost"
+  port: 3306
+  database: "mangoparty"
+  username: "root"
+  password: ""
+
+# Queue settings
+queue:
+  max_wait_time: 300 # seconds
+  auto_start_delay: 5 # seconds
+
+# Match settings
 match:
-  # Countdown duration in seconds
-  countdown-duration: 5
-  # Minimum players required to start a match
-  min-players: 2
-  # Maximum match duration in minutes (0 = unlimited)
-  max-duration: 30
+  countdown_time: 5 # seconds
+  max_duration: 1800 # seconds (30 minutes)
+  regenerate_arenas: true
 
-# Arena Settings
-arena:
-  # Auto-regenerate arenas after matches
-  auto-regenerate: true
-  # Delay before regeneration in seconds
-  regeneration-delay: 5
+# Party settings
+party:
+  max_size: 8
+  invite_timeout: 60 # seconds
 
-# Scoreboard Settings
+# Scoreboard settings
 scoreboard:
-  title: "&#FFD700&lMangoParty"
-  lines:
-    - ""
-    - "&#FF6B6BArena: &#FFFFFF{arena}"
-    - "&#4ECDC4Kit: &#FFFFFF{kit}"
-    - "&#45B7D1Mode: &#FFFFFF{match_type}"
-    - ""
-    - "&#FFE66DStatus: {status}"
-    - "&#4ECDC4Players: &#FFFFFF{players_alive}/{players_total}"
-    - ""
-    - "&#FFEAA7Stats:"
-    - "  &#FF7675Kills: &#FFFFFF{kills}"
-    - "  &#74B9FFDeaths: &#FFFFFF{deaths}"
-    - ""
-    - "&#A29BFETime: &#FFFFFF{time}"
-    - ""
-    - "&#FFD93Dmangoparty.com"
+  enabled: true
+  update_interval: 20 # ticks
 
 # Messages
 messages:
-  prefix: "§6[MangoParty] §r"
-  party-created: "§aParty created successfully!"
-  party-disbanded: "§cParty has been disbanded!"
-  invite-sent: "§aInvite sent to {player}!"
-  invite-received: "§a{player} §7invited you to their party!"
-  player-joined: "§a{player} §7joined the party!"
-  player-left: "§c{player} §7left the party!"
-  leadership-transferred: "§a{player} §7is now the party leader!"
-  match-starting: "§aMatch starting in {seconds} seconds!"
-  match-started: "§aMatch started! Good luck!"
-  match-ended: "§cMatch ended!"
-  
-  # Party vs Party Duel Messages
-  party-duel:
-    challenge-received: "§6⚔ §e{challenger_party} §7has challenged your party to a duel! §6⚔"
-    kit-info: "§7Kit: §f{kit} §8| §7Expires in: §c60 seconds"
-    challenge-sent: "§aDuel request sent to §e{target_party} §awith kit: §f{kit}"
-    challenge-accepted: "§aDuel accepted! Starting match with kit: §f{kit}"
-    challenge-declined: "§c{target_party} §7has declined your duel request."
-    challenge-expired: "§cYour duel request to §e{target_party} §chas expired."
-    challenge-expired-target: "§cThe duel request from §e{challenger_party} §chas expired."
-    no-pending-duel: "§cYou don't have any pending duel requests!"
-    duel-not-found: "§cDuel request not found or challenger is offline!"
-    already-in-match: "§cOne of the parties is already in a match!"
-    no-available-arenas: "§cNo available arenas for the duel!"
-    kit-not-found: "§cKit not found!"
+  prefix: "&8[&6MangoParty&8] "
+  no_permission: "&cYou don't have permission to use this command!"
+  player_only: "&cThis command can only be used by players!"
+  arena_not_found: "&cArena not found!"
+  kit_not_found: "&cKit not found!"
+  already_in_queue: "&cYou are already in a queue!"
+  not_in_queue: "&cYou are not in a queue!"
+  queue_joined: "&aYou have joined the {type} queue!"
+  queue_left: "&cYou have left the queue!"
+  match_starting: "&aMatch starting in {time} seconds!"
+  match_started: "&aMatch has started!"
+  match_ended: "&eMatch ended!"
+  party_created: "&aParty created!"
+  party_disbanded: "&cParty disbanded!"
+  party_invite_sent: "&aParty invite sent to {player}!"
+  party_invite_received: "&aYou have been invited to {player}'s party!"
+  party_joined: "&a{player} joined the party!"
+  party_left: "&c{player} left the party!"
