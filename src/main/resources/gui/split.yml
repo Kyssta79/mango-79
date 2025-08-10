@@ -6,25 +6,19 @@ kits:
     slot: 10
     name: "§cWarrior Kit"
     kit: "warrior"
-    lore:
-      - "§7A balanced melee kit"
-      - "§7with sword and armor"
+    lore: []
     customModelData: 1001
   
   archer:
     slot: 12
     name: "§aArcher Kit"
     kit: "archer"
-    lore:
-      - "§7Ranged combat kit"
-      - "§7with bow and arrows"
+    lore: []
     customModelData: 1002
   
   mage:
     slot: 14
     name: "§9Mage Kit"
     kit: "mage"
-    lore:
-      - "§7Magical kit with"
-      - "§7potions and enchanted items"
+    lore: []
     customModelData: 1003

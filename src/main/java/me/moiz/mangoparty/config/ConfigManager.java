@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
 public class ConfigManager {
     private MangoParty plugin;
@@ -115,14 +116,8 @@ public class ConfigManager {
         config.set("kits." + kitKey + ".slot", slot);
         config.set("kits." + kitKey + ".name", "&e" + kit.getDisplayName());
         
-        // Set default lore
-        List<String> defaultLore = Arrays.asList(
-            "&7A powerful kit for combat",
-            "&7Perfect for " + matchType + " matches",
-            "",
-            "&eClick to select!"
-        );
-        config.set("kits." + kitKey + ".lore", defaultLore);
+        // Set empty lore (no default lore)
+        config.set("kits." + kitKey + ".lore", new ArrayList<String>());
 
         try {
             config.save(configFile);
@@ -167,14 +162,8 @@ public class ConfigManager {
         config.set("kits." + kit.getName() + ".material", kit.getIcon() != null ? kit.getIcon().getType().name() : "IRON_SWORD");
         config.set("kits." + kit.getName() + ".name", "&e" + kit.getDisplayName());
         
-        // Set default lore for queue kits
-        List<String> defaultLore = Arrays.asList(
-            "&7Queue up with this kit",
-            "&7Players in queue: &e{queued}",
-            "",
-            "&eClick to join queue!"
-        );
-        config.set("kits." + kit.getName() + ".lore", defaultLore);
+        // Set empty lore (no default lore)
+        config.set("kits." + kit.getName() + ".lore", new ArrayList<String>());
 
         try {
             config.save(configFile);

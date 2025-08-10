@@ -7,6 +7,4 @@ kits:
   #   slot: 11
   #   material: DIAMOND_SWORD
   #   name: "&bSword Kit"
-  #   lore:
-  #     - "&7Click to queue with this kit."
-  #     - "&eQueued: {queued}"
+  #   lore: []

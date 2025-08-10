@@ -7,6 +7,4 @@ kits:
   #   slot: 13
   #   material: IRON_AXE
   #   name: "&cAxe Kit"
-  #   lore:
-  #     - "&7Click to queue with this kit."
-  #     - "&eQueued: {queued}"
+  #   lore: []

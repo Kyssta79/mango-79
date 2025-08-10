@@ -7,6 +7,4 @@ kits:
   #   slot: 15
   #   material: BOW
   #   name: "&aBow Kit"
-  #   lore:
-  #     - "&7Click to queue with this kit."
-  #     - "&eQueued: {queued}"
+  #   lore: []
